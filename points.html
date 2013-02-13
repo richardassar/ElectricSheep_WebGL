@@ -33,8 +33,48 @@
 
 			uniform sampler2D uTexSamp;
 
+			/// COSH Function (Hyperbolic Cosine) http://machinesdontcare.wordpress.com/2008/03/10/glsl-cosh-sinh-tanh/
+			float cosh(float val)
+			{
+				float tmp = exp(val);
+				float cosH = (tmp + 1.0 / tmp) / 2.0;
+				return cosH;
+			}
+
+			// TANH Function (Hyperbolic Tangent) http://machinesdontcare.wordpress.com/2008/03/10/glsl-cosh-sinh-tanh/
+			float tanh(float val)
+			{
+				float tmp = exp(val);
+				float tanH = (tmp - 1.0 / tmp) / (tmp + 1.0 / tmp);
+				return tanH;
+			}
+
+			// SINH Function (Hyperbolic Sine) http://machinesdontcare.wordpress.com/2008/03/10/glsl-cosh-sinh-tanh/
+			float sinh(float val)
+			{
+				float tmp = exp(val);
+				float sinH = (tmp - 1.0 / tmp) / 2.0;
+				return sinH;
+			}
+
+			const float PI = 3.1415927;
+
 			void main(void) {
 				vec2 point = texture2D(uTexSamp, gl_FragCoord.xy / 512.0).rg;
+
+				float r = length(point);
+				float a = atan(point.x/point.y);
+				float b = atan(point.y/point.x);
+
+				point = pow(r, sin(a)) * vec2(1.3*cos(a) + 0.1, 2.4*sin(a) + 0.1);
+				//point = 1.0 / r * vec2(cos(a) + sin(r), sin(a) - cos(r));
+r = length(point);
+a = atan(point.x/point.y);
+b = atan(point.y/point.x);
+				//point = vec2(sin(point.x), sin(point.y));
+				//point = vec2(cos(PI * point.x) * cosh(point.y), -sin(PI * point.x) * sinh(point.y));
+				point = r * vec2(0.1*sin(a * r)-0.001, 0.2* -cos(a * r) - 0.002);
+
 
 				gl_FragColor = vec4(point.xy, 0.0, 0.0);
 			}
@@ -97,15 +137,15 @@
 
 			void main(void) {
 				vColor = aVertexColor;
-				gl_PointSize = 2.0;
+				gl_PointSize = 1.0;
 
 				vec2 point = texture2D(uTexSamp, aVertexPosition.xy).rg;
 
-				float r = length(point);
-				float a = atan(point.x/point.y);
-				float b = atan(point.y/point.x);
+				//float r = length(point);
+				//float a = atan(point.x/point.y);
+				//float b = atan(point.y/point.x);
 
-				point = 1.0 / (r * r) * point;
+				//point = 1.0 / (r * r) * point;
 				//point = exp(point.x - 1.0) * vec2(cos(3.14 * point.y), sin(3.14 * point.y));
 				//point = vec2(cos(3.14 * point.x) * cosh(point.y), -sin(3.14 * point.x) * sinh(point.y));
 				//point = vec2(sin(point.x), sin(point.y));
@@ -315,7 +355,7 @@
 							pixels.push(
 								-1 + 2 * Math.random(),
 								-1 + 2 * Math.random(),
-								0,
+								-1 + 2 * Math.random(),
 								0
 							);
 						}
@@ -411,7 +451,8 @@
 					fps++;
 
 					//
-					requestAnimFrame(drawScene);
+					//requestAnimFrame(drawScene);
+					setTimeout(drawScene, 0);
 				}
 
 				var gl;
@@ -420,8 +461,8 @@
 			  	function main() {
 					canvas = document.getElementById("screen");
 
-					canvas.width = 512;
-					canvas.height = 512;
+					canvas.width = 1024;
+					canvas.height = 1024;
 
 					gl = initGL(canvas);
 
