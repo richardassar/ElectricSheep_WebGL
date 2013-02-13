@@ -130,7 +130,7 @@
 					}
 				}
 
-				function getShader(gl, id) {
+				function getShader(id) {
 					var shaderScript = document.getElementById(id);
 
 					if (!shaderScript) {
@@ -158,6 +158,21 @@
 					}
 
 					return shader;
+				}
+
+				function compileShader(vs, fs) {
+					var prog = gl.createProgram();
+
+					gl.attachShader(prog, getShader(vs));
+					gl.attachShader(prog, getShader(fs));
+
+					gl.linkProgram(prog);
+
+					if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+						throw new Error("Could not initialise shaders");
+					}
+
+					return prog;
 				}
 
 				var cubeVertexPositionBuffer;
@@ -190,7 +205,7 @@
 								r = g = b = 1;
 							}
 
-							colours.push(1.0,1.0,1.0,1.0/8.0);
+							colours.push(1.0,1.0,1.0,1.0/128.0);
 						}
 					}
 
@@ -216,19 +231,8 @@
 				var shaderProgram;
 
 				function initShaders() {
-					var fragmentShader = getShader(gl, "shader-fs");
-					var vertexShader = getShader(gl, "shader-vs");
-
-					shaderProgram = gl.createProgram();
-
-					gl.attachShader(shaderProgram, vertexShader);
-					gl.attachShader(shaderProgram, fragmentShader);
-
-					gl.linkProgram(shaderProgram);
-
-					if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-						console.log("Could not initialise shaders");
-					}
+					//
+					shaderProgram = compileShader("shader-vs", "shader-fs");
 
 					gl.useProgram(shaderProgram);
 
@@ -244,6 +248,7 @@
 				var texture;
 
 				function initTextures() {
+					//
 					texture = gl.createTexture();
 
 					gl.activeTexture(gl.TEXTURE0);
@@ -266,14 +271,38 @@
 
 					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+					//
+					texture1 = gl.createTexture();
+
+					gl.activeTexture(gl.TEXTURE1);
+					gl.bindTexture(gl.TEXTURE_2D, texture1);
+
+					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, tSize, tSize, 0, gl.RGBA, gl.FLOAT, null);
+
+					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+				}
+
+				var FBO0, FBO1;
+
+				function initFBOs() {
+					FBO0 = gl.createFramebuffer();
+
+					gl.bindFramebuffer(gl.FRAMEBUFFER, FBO0);
+					gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+
+					//
+					FBO1 = gl.createFramebuffer();
+
+					gl.bindFramebuffer(gl.FRAMEBUFFER, FBO1);
+					gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture1, 0);
 				}
 
 				var fps = 0;
 				var fpsCounterElement = document.getElementById("fps-counter");
 
 				setInterval(function() {
-					console.log(fps);
-
 					fpsCounterElement.innerHTML = fps + " fps";
 
 					fps = 0;
@@ -283,6 +312,12 @@
 				function drawScene() {
 					gl.clear(gl.COLOR_BUFFER_BIT);
 
+					//gl.useProgram(prog_show);
+					//gl.bindFramebuffer(gl.FRAMEBUFFER, FBO0);
+
+					//
+					gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+					gl.useProgram(shaderProgram);
 					gl.drawArrays(gl.POINTS, 0, cubeVertexPositionBuffer.numItems);
 
 					fps++;
@@ -306,6 +341,7 @@
 					initShaders();
 					initBuffers();
 					initTextures();
+					initFBOs();
 
 					gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
