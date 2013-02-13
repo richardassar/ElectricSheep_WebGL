@@ -51,6 +51,30 @@
 
 			varying vec4 vColor;
 
+			/// COSH Function (Hyperbolic Cosine) http://machinesdontcare.wordpress.com/2008/03/10/glsl-cosh-sinh-tanh/
+			float cosh(float val)
+			{
+				float tmp = exp(val);
+				float cosH = (tmp + 1.0 / tmp) / 2.0;
+				return cosH;
+			}
+
+			// TANH Function (Hyperbolic Tangent) http://machinesdontcare.wordpress.com/2008/03/10/glsl-cosh-sinh-tanh/
+			float tanh(float val)
+			{
+				float tmp = exp(val);
+				float tanH = (tmp - 1.0 / tmp) / (tmp + 1.0 / tmp);
+				return tanH;
+			}
+
+			// SINH Function (Hyperbolic Sine) http://machinesdontcare.wordpress.com/2008/03/10/glsl-cosh-sinh-tanh/
+			float sinh(float val)
+			{
+				float tmp = exp(val);
+				float sinH = (tmp - 1.0 / tmp) / 2.0;
+				return sinH;
+			}
+
 			void main(void) {
 				vColor = aVertexColor;
 				gl_PointSize = 1.0;
@@ -60,7 +84,11 @@
 
 				float l = length(point);
 
-				point = 1.0 / (l*l) * point;
+				//point = 1.0 / (l*l) * point;
+				//point = exp(point.x - 1.0) * vec2(cos(3.14 * point.y), sin(3.14 * point.y));
+				point = vec2(cos(3.14 * point.x) * cosh(point.y), -sin(3.14 * point.x) * sinh(point.y));
+
+
 				/*
 				point = exp(point.x - 1.0) * vec3(cos(3.14 * point.y), sin(3.14 * point.x), sin(3.14 * point.z));
 				point = vec3(point.x * sin(l*l) - point.y * cos(l*l), point.x * cos(l*l) - point.y * sin(l*l), point.z);
