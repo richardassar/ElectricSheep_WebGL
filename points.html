@@ -38,7 +38,7 @@
 			varying vec4 vColor;
 
 			void main(void) {
-				gl_FragColor = vColor;
+				gl_FragColor = vColor;//vec4(1.0,1.0,1.0,0.125);
 			}
 		</script>
 
@@ -53,10 +53,29 @@
 
 			void main(void) {
 				vColor = aVertexColor;
-				gl_PointSize = 4.0;
+				gl_PointSize = 1.0;
 				//gl_Position = vec4(aVertexPosition.xy, 0.0, 1.0);
 
-				gl_Position = uPMatrix * uMVMatrix * vec4(texture2D(uTexSamp, aVertexPosition.xy).rgb, 1.0);
+				vec3 point = texture2D(uTexSamp, aVertexPosition.xy).rgb;
+
+				float l = length(point);
+
+				point = 1.0 / (l*l) * point;
+				point = 1.0 / (l*l) * point;
+				point = exp(point.x - 1.0) * vec3(cos(3.14 * point.y), sin(3.14 * point.x), sin(3.14 * point.z));
+				point = 1.0 / (l*l) * point;
+				point = exp(point.x - 1.0) * vec3(cos(3.14 * point.y), sin(3.14 * point.x), sin(3.14 * point.z));
+				point = 1.0 / (l*l) * point;
+				point = 1.0 / (l*l) * point;
+				point = 1.0 / (l*l) * point;
+				point = exp(point.x - 1.0) * vec3(cos(3.14 * point.y), sin(3.14 * point.x), sin(3.14 * point.z));
+				point = 1.0 / (l*l) * point;
+				/*
+				point = exp(point.x - 1.0) * vec3(cos(3.14 * point.y), sin(3.14 * point.x), sin(3.14 * point.z));
+				point = vec3(point.x * sin(l*l) - point.y * cos(l*l), point.x * cos(l*l) - point.y * sin(l*l), point.z);
+				point = vec3(point.z * sin(l*l) - point.y * cos(l*l), point.y, point.z * cos(l*l) - point.y * sin(l*l));
+				*/
+				gl_Position = uPMatrix * uMVMatrix * vec4(point.xyz, 1.0);
 			}
 		</script>
 
@@ -133,7 +152,7 @@
 					var vertices = [];
 					var colours = [];
 
-					var N = 512;
+					var N = 1024;
 
 					var r, g, b;
 
@@ -153,10 +172,12 @@
 								r = g = b = 1;
 							}
 
-							colours.push(x / N);
+							/*colours.push(x / N);
 							colours.push(y / N);
 							colours.push(b);
-							colours.push(0.1);
+							colours.push(0.1);*/
+
+							colours.push(x/N,y/N,b,1.0/100.0);
 						}
 					}
 
@@ -239,17 +260,18 @@
 					gl.activeTexture(gl.TEXTURE0);
 					gl.bindTexture(gl.TEXTURE_2D, texture);
 
-					var pixels = [], tSize = canvas.width;
+					var pixels = [], tSize = 1024;
 
 					for(var i = 0; i < tSize; i++) {
 						for(var j = 0; j < tSize; j++) {
 							pixels.push(
 								//-1.0 + 2.0 * i * 1.0 / tSize + 1.0 / tSize,
 								//-1.0 + 2.0 * j * 1.0 / tSize + 1.0 / tSize,
+								//-1.0 + 2.0 * j * 1.0 / tSize + 1.0 / tSize,
 								-1 + 2 * Math.random(),
 								-1 + 2 * Math.random(),
 								-1 + 2 * Math.random(),
-								-1 + 2 * Math.random()
+								0
 							);
 						}
 					}
@@ -275,18 +297,18 @@
 
 				function drawScene() {
 					i = new Date().getTime() / 1000;
-					gl.viewport(0, 0, canvas.width, canvas.height);
 
 					mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
 
-					gl.clear(gl.COLOR_BUFFER_BIT);
+					gl.clear(gl.COLOR_BUFFER_BIT/* | gl.DEPTH_BUFFER_BIT*/);
 
 					//gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
 					//gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, cubeVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
 					mat4.identity(mvMatrix);
-					mat4.translate(mvMatrix, [0, 0, -2]);
-					mat4.rotate(mvMatrix, i, [0, 1, 0]);
+					mat4.translate(mvMatrix, [-0.1, 0, -2]);
+					mat4.rotate(mvMatrix, i, [Math.sin(i), 1, 0.25]);
+					//mat4.rotate(mvMatrix, 0.5, [0.5, 1, 0.25]);
 
 
 					setMatrixUniforms();
@@ -318,10 +340,12 @@
 			  	function main() {
 					canvas = document.getElementById("screen");
 
-					canvas.width = 512;//window.innerWidth;
-					canvas.height = 512;//window.innerHeight;
+					canvas.width = 1024;//window.innerWidth;
+					canvas.height = 1024;//window.innerHeight;
 
 					gl = initGL(canvas);
+
+					gl.viewport(0, 0, canvas.width, canvas.height);
 
 					initShaders();
 					initBuffers();
@@ -332,9 +356,16 @@
 					//gl.enable(gl.VERTEX_PROGRAM_POINT_SIZE);
 					//var apsr=gl.getParameter(gl.ALIASED_POINT_SIZE_RANGE);
 
-					/*gl.enable(gl.DEPTH_TEST);*/
-					gl.enable(gl.BLEND);
+					//gl.enable(gl.DEPTH_TEST);
+					//gl.enable(gl.BLEND);
+					//gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+
+					//gl.enable(0x0B10); //0x0B10);
+
+				   	gl.enable(gl.BLEND);
+					//gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 					gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+					//gl.blendFunc(gl.DST_ALPHA, gl.ONE);
 
 					setTimeout(function() {
 						drawScene();
