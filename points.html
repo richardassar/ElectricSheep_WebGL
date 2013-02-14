@@ -34,8 +34,34 @@
 			uniform sampler2D uTexSamp;
 
 			void main(void) {
+				/*vec4 sample1 = texture2D(uTexSamp, gl_FragCoord.xy / <%= RESOLUTION %> + vec2(0.0, 0.0) / 1024.0);
+				vec4 sample2 = texture2D(uTexSamp, gl_FragCoord.xy / <%= RESOLUTION %> + vec2(1.0, 0.0) / 1024.0);
+				vec4 sample3 = texture2D(uTexSamp, gl_FragCoord.xy / <%= RESOLUTION %> + vec2(0.0, 1.0) / 1024.0);
+				vec4 sample4 = texture2D(uTexSamp, gl_FragCoord.xy / <%= RESOLUTION %> + vec2(1.0, 1.0) / 1024.0);
+
+				vec3 colAvg = (sample1.rgb + sample2.rgb + sample3.rgb + sample4.rgb) / 4.0;
+				float freqAvg = (sample1.a + sample2.a + sample3.a + sample4.a) / 4.0;
+
+				float freqMax = max(sample1.a, max(sample2.a, max(sample3.a, sample4.a)));
+
+				float alpha = log(freqAvg) / freqMax;
+
+				gl_FragColor = vec4(
+					colAvg * pow(alpha, 1.0 / 2.0)
+				, 1.0);*/
+
+				vec3 col;
+
 				vec4 sample = texture2D(uTexSamp, gl_FragCoord.xy / <%= RESOLUTION %>);
-				gl_FragColor = vec4(sample.rgb / sample.a, 1.0);
+
+
+				if(sample.a > 1000.0) {
+					col = vec3(1.0,0.0,0.0);
+				} else {
+					col = sample.rgb / 10000.0;
+				}
+
+				gl_FragColor = vec4(col, 1.0);
 			}
 		</script>
 
@@ -99,17 +125,17 @@
 			}
 		</script>
 
-		<script id="shader-fs" type="x-shader/x-fragment">
+		<script id="shader-points-fs" type="x-shader/x-fragment">
 			#ifdef GL_ES
 				precision highp float;
 			#endif
 
 			void main(void) {
-				gl_FragColor = vec4(0.1, 0.1, 0.1, 0.1);
+				gl_FragColor = vec4(1.0, 1.0, 1.0, 0.5);
 			}
 		</script>
 
-		<script id="shader-vs" type="x-shader/x-vertex">
+		<script id="shader-points-vs" type="x-shader/x-vertex">
 			attribute vec3 aVertexPosition;
 
 			uniform sampler2D uTexSamp;
@@ -180,6 +206,7 @@
 				function initGL(canvas) {
 					try {
 						var webglOptions = {antialias: false, depth: false};
+
 						var gl =
 							canvas.getContext("webgl", webglOptions) ||
 							canvas.getContext("experimental-webgl", webglOptions);
@@ -284,7 +311,7 @@
 					pointsVertexPositionBuffer.itemSize = 2;
 					pointsVertexPositionBuffer.numItems = N * N;
 
-					gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, pointsVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+					gl.vertexAttribPointer(prog_points.vertexPositionAttribute, pointsVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
 					//
 					quadVertexPositionBuffer = gl.createBuffer();
@@ -306,16 +333,16 @@
 					gl.vertexAttribPointer(prog_comp.vertexPositionAttribute, quadVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 				}
 
-				var shaderProgram, prog_comp, prog_show;
+				var prog_points, prog_comp, prog_show;
 
 				function initShaders() {
 					//
-					shaderProgram = compileShader("shader-vs", "shader-fs");
+					prog_points = compileShader("shader-points-vs", "shader-points-fs");
 
-					shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
-					gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+					prog_points.vertexPositionAttribute = gl.getAttribLocation(prog_points, "aVertexPosition");
+					gl.enableVertexAttribArray(prog_points.vertexPositionAttribute);
 
-					shaderProgram.uTexSamp = gl.getUniformLocation(shaderProgram, "uTexSamp")
+					prog_points.uTexSamp = gl.getUniformLocation(prog_points, "uTexSamp")
 
 					//
 					prog_comp = compileShader("shader-direct-vs", "shader-comp-fs", {RESOLUTION: points_size});
@@ -375,7 +402,7 @@
 					gl.activeTexture(gl.TEXTURE2);
 					gl.bindTexture(gl.TEXTURE_2D, texture2);
 
-					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, canvas.width, canvas.height, 0, gl.RGBA, gl.FLOAT, null);
+					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1024/*canvas.width*/, 1024/*canvas.height*/, 0, gl.RGBA, gl.FLOAT, null);
 
 					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
@@ -400,6 +427,8 @@
 
 					gl.bindFramebuffer(gl.FRAMEBUFFER, FBO2);
 					gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture2, 0);
+					gl.clearColor(0.0, 0.0, 0.0, 1.0);
+					gl.clear(gl.COLOR_BUFFER_BIT);
 				}
 
 				var fps = 0;
@@ -434,28 +463,30 @@
 					gl.drawArrays(gl.TRIANGLE_STRIP, 0, quadVertexPositionBuffer.numItems);
 
 					//
-					gl.viewport(0, 0, canvas.width, canvas.height);
+					gl.viewport(0, 0, 1024, 1024);
 
-					if(fps > 20) {
+					//if(fps > 20) {
 						gl.enable(gl.BLEND);
 
-						gl.useProgram(shaderProgram);
+						gl.useProgram(prog_points);
 
 						if(flag) {
-							gl.uniform1i(shaderProgram.uTexSamp, 1);
+							gl.uniform1i(prog_points.uTexSamp, 1);
 						} else {
-							gl.uniform1i(shaderProgram.uTexSamp, 0);
+							gl.uniform1i(prog_points.uTexSamp, 0);
 						}
 
 						gl.bindFramebuffer(gl.FRAMEBUFFER, FBO2);
 
 						gl.bindBuffer(gl.ARRAY_BUFFER, pointsVertexPositionBuffer);
-						gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, pointsVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+						gl.vertexAttribPointer(prog_points.vertexPositionAttribute, pointsVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
 						gl.drawArrays(gl.POINTS, 0, pointsVertexPositionBuffer.numItems);
-					}
+					//}
 
 					//
+					gl.viewport(0, 0, canvas.width, canvas.height);
+
 					gl.disable(gl.BLEND);
 
 					gl.useProgram(prog_show);
@@ -483,8 +514,8 @@
 			  	function main() {
 					canvas = document.getElementById("screen");
 
-					canvas.width = 512;
-					canvas.height = 512;
+					canvas.width = 1024;
+					canvas.height = 1024;
 
 					gl = initGL(canvas);
 
@@ -493,10 +524,12 @@
 					initTextures();
 					initFBOs();
 
-					gl.clearColor(0.0, 0.0, 0.0, 1.0);
-
 				   	gl.enable(gl.BLEND);
-					gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+					//gl.blendFunc(gl.ONE, gl.ONE);
+					gl.blendFunc(gl.ONE, gl.ONE);
+					//gl.blendEquation(gl.ADD)
+					//gl.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_SUBTRACT);
+					//gl.blendFuncSeparate(gl.SRC_ALPHA, gl.DST_ALPHA, gl.ONE, gl.ONE);
 
 					drawScene();
 				}
