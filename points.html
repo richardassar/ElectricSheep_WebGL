@@ -26,6 +26,18 @@
 			}
 		</style>
 
+		<script id="shader-show-fs" type="x-shader/x-fragment">
+			#ifdef GL_ES
+				precision highp float;
+			#endif
+
+			uniform sampler2D uTexSamp;
+
+			void main(void) {
+				gl_FragColor = vec4(texture2D(uTexSamp, gl_FragCoord.xy / <%= RESOLUTION %>).rgb, 1.0);
+			}
+		</script>
+
 		<script id="shader-comp-fs" type="x-shader/x-fragment">
 			#ifdef GL_ES
 				precision highp float;
@@ -60,31 +72,29 @@
 			const float PI = 3.1415927;
 
 			void main(void) {
-				vec2 point = texture2D(uTexSamp, gl_FragCoord.xy / 512.0).rg;
+				vec2 point = texture2D(uTexSamp, gl_FragCoord.xy / <%= RESOLUTION %>).rg;
 
 				float r = length(point);
 				float a = atan(point.x/point.y);
 				float b = atan(point.y/point.x);
 
-				point = pow(r, sin(a)) * vec2(1.3*cos(a) + 0.1, 2.4*sin(a) + 0.1);
-				//point = 1.0 / r * vec2(cos(a) + sin(r), sin(a) - cos(r));
-r = length(point);
-a = atan(point.x/point.y);
-b = atan(point.y/point.x);
-				//point = vec2(sin(point.x), sin(point.y));
-				//point = vec2(cos(PI * point.x) * cosh(point.y), -sin(PI * point.x) * sinh(point.y));
-				point = r * vec2(0.1*sin(a * r)-0.001, 0.2* -cos(a * r) - 0.002);
+				point = pow(r, sin(a)) * vec2(1.2*cos(a) + 0.1, 2.4*sin(a) + 0.1);
 
+				r = length(point);
+				a = atan(point.x/point.y);
+				b = atan(point.y/point.x);
+
+				point = r * vec2(0.1*sin(a * r)-0.001, 0.2* -cos(a * r) - 0.002);
 
 				gl_FragColor = vec4(point.xy, 0.0, 0.0);
 			}
 		</script>
 
-		<script id="shader-comp-vs" type="x-shader/x-vertex">
+		<script id="shader-direct-vs" type="x-shader/x-vertex">
 			attribute vec3 aVertexPosition;
 
 			void main(void) {
-				gl_Position = vec4(aVertexPosition, 1.0) * 0.5;
+				gl_Position = vec4(aVertexPosition, 1.0);
 			}
 		</script>
 
@@ -93,18 +103,14 @@ b = atan(point.y/point.x);
 				precision highp float;
 			#endif
 
-			varying vec4 vColor;
-
 			void main(void) {
-				gl_FragColor = vColor;//vec4(1.0,1.0,1.0,0.125);
+				gl_FragColor = vec4(1.0, 1.0, 1.0, 0.25);//vColor;
 			}
 		</script>
 
 		<script id="shader-vs" type="x-shader/x-vertex">
 			attribute vec3 aVertexPosition;
-			attribute vec4 aVertexColor;
-			uniform mat4 uMVMatrix;
-			uniform mat4 uPMatrix;
+
 			uniform sampler2D uTexSamp;
 
 			varying vec4 vColor;
@@ -136,7 +142,6 @@ b = atan(point.y/point.x);
 			const float PI = 3.141592;
 
 			void main(void) {
-				vColor = aVertexColor;
 				gl_PointSize = 1.0;
 
 				vec2 point = texture2D(uTexSamp, aVertexPosition.xy).rg;
@@ -155,9 +160,7 @@ b = atan(point.y/point.x);
 				//point = a / PI * vec2(sin(PI * r), cos(PI * r));
 				//point = pow(r, sin(a)) * vec2(cos(a), sin(a));
 				//point = 1.0 / r * vec2((point.x - point.y) * (point.x + point.y), 2.0 * point.x * point.y);
-
 				//point = vec2(sin(point.x)/cos(point.y), tan(point.y));
-
 
 				gl_Position = vec4(point.xy, 0.0, 1.0);
 			}
@@ -175,7 +178,10 @@ b = atan(point.y/point.x);
 
 				function initGL(canvas) {
 					try {
-						var gl = canvas.getContext("webgl", {antialias: false}) || canvas.getContext("experimental-webgl", {antialias: false});
+						var webglOptions = {antialias: false, depth: false};
+						var gl =
+							canvas.getContext("webgl", webglOptions) ||
+							canvas.getContext("experimental-webgl", webglOptions);
 
 						gl.viewportWidth = canvas.width;
 						gl.viewportHeight = canvas.height;
@@ -192,7 +198,21 @@ b = atan(point.y/point.x);
 					}
 				}
 
-				function getShader(id) {
+				function template(str, replacements) {
+					for(var prop in replacements) {
+						var val = replacements[prop];
+
+						if(typeof val == "number" && String(val).indexOf(".") == -1) {
+							val = val + ".0";
+						}
+
+						str = str.replace(new RegExp("<%= " + prop + " %>", "g"), val);
+					}
+
+					return str;
+				}
+
+				function getShader(id, templateOptions) {
 					var shaderScript = document.getElementById(id);
 
 					if (!shaderScript) {
@@ -200,6 +220,8 @@ b = atan(point.y/point.x);
 					}
 
 					var str = shaderScript.innerHTML;
+
+					str = template(str, templateOptions);
 
 					var shader;
 
@@ -222,11 +244,11 @@ b = atan(point.y/point.x);
 					return shader;
 				}
 
-				function compileShader(vs, fs) {
+				function compileShader(vs, fs, templateOptions) {
 					var prog = gl.createProgram();
 
-					gl.attachShader(prog, getShader(vs));
-					gl.attachShader(prog, getShader(fs));
+					gl.attachShader(prog, getShader(vs, templateOptions));
+					gl.attachShader(prog, getShader(fs, templateOptions));
 
 					gl.linkProgram(prog);
 
@@ -237,65 +259,36 @@ b = atan(point.y/point.x);
 					return prog;
 				}
 
-				var cubeVertexPositionBuffer;
-				var cubeVertexColorBuffer;
-				var cubeVertexIndexBuffer;
-
-				var squareVertexPositionBuffer;
+				var pointsVertexPositionBuffer;
+				var quadVertexPositionBuffer;
 
 				function initBuffers() {
 					//
-					cubeVertexPositionBuffer = gl.createBuffer();
+					pointsVertexPositionBuffer = gl.createBuffer();
 
-					gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
+					gl.bindBuffer(gl.ARRAY_BUFFER, pointsVertexPositionBuffer);
 
 					var vertices = [];
-					var colours = [];
 
-					var N = 512;
-
-					var r, g, b;
-
-					r = g = b = 1;
+					var N = points_size;
 
 					for(var x = 0; x < N; x++) {
 						for(var y = 0; y < N; y++) {
 							vertices.push(x / N, y / N);
-							//vertices.push(0, 0);
-
-							if(x == 0 || x == N - 1 || y == 0 || y == N - 1 || x == y) {
-								r = 1;
-								g = b = 0;
-							} else {
-								r = g = b = 1;
-							}
-
-							colours.push(1.0,1.0,1.0,0.25);
 						}
 					}
 
 					gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
 
-					cubeVertexPositionBuffer.itemSize = 2;
-					cubeVertexPositionBuffer.numItems = N*N;
+					pointsVertexPositionBuffer.itemSize = 2;
+					pointsVertexPositionBuffer.numItems = N * N;
 
-					gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, cubeVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-					//
-					cubeVertexColorBuffer = gl.createBuffer();
-
-					gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexColorBuffer);
-					gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colours), gl.STATIC_DRAW);
-
-					cubeVertexColorBuffer.itemSize = 4;
-					cubeVertexColorBuffer.numItems = N*N;
-
-					gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, cubeVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
+					gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, pointsVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
 					//
-					squareVertexPositionBuffer = gl.createBuffer();
+					quadVertexPositionBuffer = gl.createBuffer();
 
-					gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
+					gl.bindBuffer(gl.ARRAY_BUFFER, quadVertexPositionBuffer);
 
 					var squareData = new Float32Array([
 						-1, -1,
@@ -304,21 +297,19 @@ b = atan(point.y/point.x);
 						1, 1
 					]);
 
-					squareVertexPositionBuffer.itemSize = 2;
-					squareVertexPositionBuffer.numItems = 4;
+					quadVertexPositionBuffer.itemSize = 2;
+					quadVertexPositionBuffer.numItems = 4;
 
 					gl.bufferData(gl.ARRAY_BUFFER, squareData, gl.STATIC_DRAW);
 
-					gl.vertexAttribPointer(prog_comp.vertexPositionAttribute, squareVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+					gl.vertexAttribPointer(prog_comp.vertexPositionAttribute, quadVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 				}
 
-				var shaderProgram, prog_comp;
+				var shaderProgram, prog_comp, prog_show;
 
 				function initShaders() {
 					//
 					shaderProgram = compileShader("shader-vs", "shader-fs");
-
-					//gl.useProgram(shaderProgram);
 
 					shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
 					gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
@@ -329,14 +320,17 @@ b = atan(point.y/point.x);
 					shaderProgram.uTexSamp = gl.getUniformLocation(shaderProgram, "uTexSamp")
 
 					//
-					prog_comp = compileShader("shader-comp-vs", "shader-comp-fs");
-
-					//gl.useProgram(prog_comp);
+					prog_comp = compileShader("shader-direct-vs", "shader-comp-fs", {RESOLUTION: points_size});
 
 					prog_comp.vertexPositionAttribute = gl.getAttribLocation(prog_comp, "aVertexPosition");
 					gl.enableVertexAttribArray(prog_comp.vertexPositionAttribute);
 
 					prog_comp.uTexSamp = gl.getUniformLocation(prog_comp, "uTexSamp")
+
+					//
+					prog_show = compileShader("shader-direct-vs", "shader-show-fs", {RESOLUTION: points_size});
+
+					prog_show.uTexSamp = gl.getUniformLocation(prog_show, "uTexSamp")
 				}
 
 				var texture, texture1, texture2;
@@ -348,14 +342,14 @@ b = atan(point.y/point.x);
 					gl.activeTexture(gl.TEXTURE0);
 					gl.bindTexture(gl.TEXTURE_2D, texture);
 
-					var pixels = [], tSize = 512;
+					var pixels = [], tSize = points_size;
 
 					for(var i = 0; i < tSize; i++) {
 						for(var j = 0; j < tSize; j++) {
 							pixels.push(
 								-1 + 2 * Math.random(),
 								-1 + 2 * Math.random(),
-								-1 + 2 * Math.random(),
+								0,
 								0
 							);
 						}
@@ -376,9 +370,20 @@ b = atan(point.y/point.x);
 
 					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+					//
+					/*texture2 = gl.createTexture();
+
+					gl.activeTexture(gl.TEXTURE2);
+					gl.bindTexture(gl.TEXTURE_2D, texture2);
+
+					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, canvas.width, canvas.height, 0, gl.RGBA, gl.FLOAT, null);
+
+					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);*/
 				}
 
-				var FBO0, FBO1;
+				var FBO0, FBO1, FBO2;
 
 				function initFBOs() {
 					FBO0 = gl.createFramebuffer();
@@ -393,10 +398,10 @@ b = atan(point.y/point.x);
 					gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture1, 0);
 
 					//
-					FBO2 = gl.createFramebuffer();
+					/*FBO2 = gl.createFramebuffer();
 
 					gl.bindFramebuffer(gl.FRAMEBUFFER, FBO2);
-					gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture2, 0);
+					gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture2, 0);*/
 				}
 
 				var fps = 0;
@@ -411,6 +416,8 @@ b = atan(point.y/point.x);
 				var flag = true;
 
 				function drawScene() {
+					gl.viewport(0, 0, points_size, points_size);
+
 					gl.disable(gl.BLEND);
 
 					gl.useProgram(prog_comp);
@@ -423,10 +430,28 @@ b = atan(point.y/point.x);
 						gl.uniform1i(prog_comp.uTexSamp, 1);
 					}
 
-					gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
-					gl.vertexAttribPointer(prog_comp.vertexPositionAttribute, squareVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+					gl.bindBuffer(gl.ARRAY_BUFFER, quadVertexPositionBuffer);
+					gl.vertexAttribPointer(prog_comp.vertexPositionAttribute, quadVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
-					gl.drawArrays(gl.TRIANGLE_STRIP, 0, squareVertexPositionBuffer.numItems);
+					gl.drawArrays(gl.TRIANGLE_STRIP, 0, quadVertexPositionBuffer.numItems);
+
+					//
+					/*gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+					gl.useProgram(prog_show);
+
+					if(flag) {
+						gl.uniform1i(prog_show.uTexSamp, 1);
+					} else {
+						gl.uniform1i(prog_show.uTexSamp, 0);
+					}
+
+					gl.drawArrays(gl.TRIANGLE_STRIP, 0, quadVertexPositionBuffer.numItems);
+
+					flag = !flag;
+
+					setTimeout(drawScene, 100);
+					return;*/
 
 					//
 					gl.enable(gl.BLEND);
@@ -441,15 +466,13 @@ b = atan(point.y/point.x);
 
 					gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
+					gl.viewport(0, 0, canvas.width, canvas.height);
 					gl.clear(gl.COLOR_BUFFER_BIT);
 
-					gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
-					gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, cubeVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+					gl.bindBuffer(gl.ARRAY_BUFFER, pointsVertexPositionBuffer);
+					gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, pointsVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
-					gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexColorBuffer);
-					gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, cubeVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-					gl.drawArrays(gl.POINTS, 0, cubeVertexPositionBuffer.numItems);
+					gl.drawArrays(gl.POINTS, 0, pointsVertexPositionBuffer.numItems);
 
 					//
 					flag = !flag;
@@ -462,6 +485,7 @@ b = atan(point.y/point.x);
 
 				var gl;
 				var canvas;
+				var points_size = 1024;
 
 			  	function main() {
 					canvas = document.getElementById("screen");
@@ -470,8 +494,6 @@ b = atan(point.y/point.x);
 					canvas.height = 1024;
 
 					gl = initGL(canvas);
-
-					gl.viewport(0, 0, canvas.width, canvas.height);
 
 					initShaders();
 					initBuffers();
@@ -482,7 +504,6 @@ b = atan(point.y/point.x);
 
 				   	gl.enable(gl.BLEND);
 					gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-
 
 					drawScene();
 				}
