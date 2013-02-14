@@ -339,7 +339,7 @@ b = atan(point.y/point.x);
 					prog_comp.uTexSamp = gl.getUniformLocation(prog_comp, "uTexSamp")
 				}
 
-				var texture, texture1;
+				var texture, texture1, texture2;
 
 				function initTextures() {
 					//
@@ -391,6 +391,12 @@ b = atan(point.y/point.x);
 
 					gl.bindFramebuffer(gl.FRAMEBUFFER, FBO1);
 					gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture1, 0);
+
+					//
+					FBO2 = gl.createFramebuffer();
+
+					gl.bindFramebuffer(gl.FRAMEBUFFER, FBO2);
+					gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture2, 0);
 				}
 
 				var fps = 0;
@@ -401,7 +407,6 @@ b = atan(point.y/point.x);
 
 					fps = 0;
 				}, 1000);
-
 
 				var flag = true;
 
@@ -452,7 +457,7 @@ b = atan(point.y/point.x);
 
 					//
 					//requestAnimFrame(drawScene);
-					setTimeout(drawScene, 0);
+					setTimeout(drawScene, 100);
 				}
 
 				var gl;
