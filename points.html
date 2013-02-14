@@ -35,7 +35,7 @@
 
 			void main(void) {
 				vec4 sample = texture2D(uTexSamp, gl_FragCoord.xy / <%= RESOLUTION %>);
-				gl_FragColor = vec4(sample.rgb, 1.0);
+				gl_FragColor = vec4(sample.rgb / sample.a, 1.0);
 			}
 		</script>
 
@@ -79,16 +79,13 @@
 				float a = atan(point.x/point.y);
 				float b = atan(point.y/point.x);
 
-				point = 1.5*pow(r, sin(a)) * vec2(1.2*cos(a) + 0.2, 6.1*sin(a) + 0.1);
-				//point = vec2(1.1*point.x + 0.2*point.y + 0.1, 0.1*point.x + 0.7*point.y-0.2);
-				//point = pow(r, sin(a)) * vec2(cos(a), sin(a));
+				point = pow(r, sin(a)) * vec2(cos(a), sin(a));
 
 				r = length(point);
 				a = atan(point.x/point.y);
 				b = atan(point.y/point.x);
 
-				//point = vec2(1.1*point.x + 0.2*point.y + 0.1, 0.1*point.x + 0.7*point.y-0.2);
-				point = r * vec2(0.1*sin(a * r)-0.001, 0.2* -cos(a * r) - 0.002);
+				point = r * vec2(0.2*sin(a * r)-0.001, 0.2* -cos(a * r) + 0.002);
 
 				gl_FragColor = vec4(point.xy, 0.0, 0.0);
 			}
@@ -108,7 +105,7 @@
 			#endif
 
 			void main(void) {
-				gl_FragColor = vec4(0.2, 0.4, 1.5, 0.00001);
+				gl_FragColor = vec4(0.1, 0.1, 0.1, 0.1);
 			}
 		</script>
 
@@ -318,9 +315,6 @@
 					shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
 					gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
 
-					shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "aVertexColor");
-					gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
-
 					shaderProgram.uTexSamp = gl.getUniformLocation(shaderProgram, "uTexSamp")
 
 					//
@@ -411,11 +405,11 @@
 				var fps = 0;
 				var fpsCounterElement = document.getElementById("fps-counter");
 
-				setInterval(function() {
+				/*setInterval(function() {
 					fpsCounterElement.innerHTML = fps + " fps";
 
 					fps = 0;
-				}, 1000);
+				}, 1000);*/
 
 				var flag = true;
 
@@ -440,24 +434,26 @@
 					gl.drawArrays(gl.TRIANGLE_STRIP, 0, quadVertexPositionBuffer.numItems);
 
 					//
-					gl.enable(gl.BLEND);
-
-					gl.useProgram(shaderProgram);
-
-					if(flag) {
-						gl.uniform1i(shaderProgram.uTexSamp, 1);
-					} else {
-						gl.uniform1i(shaderProgram.uTexSamp, 0);
-					}
-
-					gl.bindFramebuffer(gl.FRAMEBUFFER, FBO2);
-
 					gl.viewport(0, 0, canvas.width, canvas.height);
 
-					gl.bindBuffer(gl.ARRAY_BUFFER, pointsVertexPositionBuffer);
-					gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, pointsVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+					if(fps > 20) {
+						gl.enable(gl.BLEND);
 
-					gl.drawArrays(gl.POINTS, 0, pointsVertexPositionBuffer.numItems);
+						gl.useProgram(shaderProgram);
+
+						if(flag) {
+							gl.uniform1i(shaderProgram.uTexSamp, 1);
+						} else {
+							gl.uniform1i(shaderProgram.uTexSamp, 0);
+						}
+
+						gl.bindFramebuffer(gl.FRAMEBUFFER, FBO2);
+
+						gl.bindBuffer(gl.ARRAY_BUFFER, pointsVertexPositionBuffer);
+						gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, pointsVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+						gl.drawArrays(gl.POINTS, 0, pointsVertexPositionBuffer.numItems);
+					}
 
 					//
 					gl.disable(gl.BLEND);
@@ -487,8 +483,8 @@
 			  	function main() {
 					canvas = document.getElementById("screen");
 
-					canvas.width = 1024;
-					canvas.height = 1024;
+					canvas.width = 512;
+					canvas.height = 512;
 
 					gl = initGL(canvas);
 
