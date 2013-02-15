@@ -40,6 +40,8 @@
 
 				vec3 col = colorTexel * log(alpha + 1.0) / (alpha * log(frames + 1.0));
 
+				col = vec3(pow(col.r, 1.0 / 2.2), pow(col.g, 1.0 / 2.2), pow(col.b, 1.0 / 2.2)); // Brightness correction
+
 				gl_FragColor = vec4(col, 1.0);
 			}
 		</script>
@@ -56,7 +58,7 @@
 
 			// Rand
 			float rand(vec2 co){
-			    return fract(sin(dot(co.xy, vec2(12.9898 + frames,78.233))) * (43758.5453));
+			    return fract(sin(dot(co.xy, vec2(12.9898 + frames, 78.233))) * (43758.5453));
 			}
 
 			// COSH Function (Hyperbolic Cosine) http://machinesdontcare.wordpress.com/2008/03/10/glsl-cosh-sinh-tanh/
@@ -102,7 +104,7 @@
 					point = exp(point.x - 1.0) * vec2(cos(3.14 * point.y), sin(3.14 * point.y));
 				}
 
-				gl_FragColor = vec4(point, 0.0, 0.0);
+				gl_FragColor = vec4(point, 0.0, 1.0);
 			}
 		</script>
 
@@ -116,7 +118,7 @@
 
 			// Rand
 			float rand(vec2 co){
-			    return fract(sin(dot(co.xy, vec2(12.9898 + frames,78.233))) * (43758.5453));
+			    return fract(sin(dot(co.xy, vec2(12.9898 + frames, 78.233))) * (43758.5453));
 			}
 
 			void main(void) {
@@ -127,14 +129,14 @@
 				float r = rand(tex);
 
 				if(r < 1.0 / 3.0) {
-					col = (col + vec3(1.0, 0.0, 0.0)) / 2.0;
+					col += vec3(1.0, 0.0, 0.0);
 				} else if(r < 2.0 / 3.0) {
-					col = (col + vec3(0.0, 1.0, 0.0)) / 2.0;
+					col += vec3(0.0, 1.0, 0.0);
 				} else {
-					col = (col + vec3(0.0, 0.0, 1.0)) / 2.0;
+					col += vec3(0.0, 0.0, 1.0);
 				}
 
-				gl_FragColor = vec4(col, 0.0);
+				gl_FragColor = vec4(col, 1.0);
 			}
 		</script>
 
@@ -161,8 +163,8 @@
 		<script id="shader-points-vs" type="x-shader/x-vertex">
 			attribute vec3 aVertexPosition;
 
-			uniform sampler2D uTexSamp;
-			uniform vec4 color;
+			uniform sampler2D uTexSamp_Points;
+			uniform sampler2D uTexSamp_Colors;
 
 			varying vec4 fragColor;
 
@@ -195,27 +197,30 @@
 			void main(void) {
 				gl_PointSize = 1.0;
 
-				vec2 point = texture2D(uTexSamp, aVertexPosition.xy).rg;
+				vec2 tex = aVertexPosition.xy;
 
-				//float r = length(point);
-				//float a = atan(point.x/point.y);
-				//float b = atan(point.y/point.x);
-
-				//point = 1.0 / (r * r) * point;
-				//point = exp(point.x - 1.0) * vec2(cos(3.14 * point.y), sin(3.14 * point.y));
-				//point = vec2(cos(3.14 * point.x) * cosh(point.y), -sin(3.14 * point.x) * sinh(point.y));
-				//point = vec2(sin(point.x), sin(point.y));
-				//point = vec2(point.x * sin(r * r) - point.y * cos(r * r), point.x * cos(r * r) + point.y * sin(r * r));
-				//point = 1.0 / r * vec2(cos(a) + sin(r), sin(a) - cos(r));
-				//point = r * vec2(sin(a * r), -cos(a * r));
-				//point = a / PI * vec2(sin(PI * r), cos(PI * r));
-				//point = pow(r, sin(a)) * vec2(cos(a), sin(a));
-				//point = 1.0 / r * vec2((point.x - point.y) * (point.x + point.y), 2.0 * point.x * point.y);
-				//point = vec2(sin(point.x)/cos(point.y), tan(point.y));
+				vec2 point = texture2D(uTexSamp_Points, tex).rg;
+				vec4 color = texture2D(uTexSamp_Colors, tex);
 
 				fragColor = color;
 				gl_Position = vec4(point.xy, 0.0, 1.0);
 			}
+
+			//float r = length(point);
+			//float a = atan(point.x/point.y);
+			//float b = atan(point.y/point.x);
+
+			//point = 1.0 / (r * r) * point;
+			//point = exp(point.x - 1.0) * vec2(cos(3.14 * point.y), sin(3.14 * point.y));
+			//point = vec2(cos(3.14 * point.x) * cosh(point.y), -sin(3.14 * point.x) * sinh(point.y));
+			//point = vec2(sin(point.x), sin(point.y));
+			//point = vec2(point.x * sin(r * r) - point.y * cos(r * r), point.x * cos(r * r) + point.y * sin(r * r));
+			//point = 1.0 / r * vec2(cos(a) + sin(r), sin(a) - cos(r));
+			//point = r * vec2(sin(a * r), -cos(a * r));
+			//point = a / PI * vec2(sin(PI * r), cos(PI * r));
+			//point = pow(r, sin(a)) * vec2(cos(a), sin(a));
+			//point = 1.0 / r * vec2((point.x - point.y) * (point.x + point.y), 2.0 * point.x * point.y);
+			//point = vec2(sin(point.x)/cos(point.y), tan(point.y));
 		</script>
 
 		<canvas id="screen"></canvas>
@@ -396,13 +401,12 @@
 					prog_show.frames = gl.getUniformLocation(prog_show, "frames");
 				}
 
-				var texture0, texture1, texture2;
+				var texture0, texture1, _texture0, _texture1, texture2;
 
 				function initTextures() {
 					//
 					texture0 = gl.createTexture();
 
-					gl.activeTexture(gl.TEXTURE0);
 					gl.bindTexture(gl.TEXTURE_2D, texture0);
 
 					var pixels = [], tSize = points_size;
@@ -423,10 +427,29 @@
 					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
-					//
+					// TODO: You heard of functions yeah? I heard they're pretty good. Start using them below.
 					texture1 = gl.createTexture();
 
-					gl.activeTexture(gl.TEXTURE1);
+					gl.bindTexture(gl.TEXTURE_2D, texture1);
+
+					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, tSize, tSize, 0, gl.RGBA, gl.FLOAT, null);
+
+					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+					//
+					_texture0 = gl.createTexture();
+
+					gl.bindTexture(gl.TEXTURE_2D, texture1);
+
+					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, tSize, tSize, 0, gl.RGBA, gl.FLOAT, null);
+
+					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+					//
+					_texture1 = gl.createTexture();
+
 					gl.bindTexture(gl.TEXTURE_2D, texture1);
 
 					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, tSize, tSize, 0, gl.RGBA, gl.FLOAT, null);
@@ -444,20 +467,9 @@
 
 					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-
-					//
-					texture2 = gl.createTexture();
-
-					gl.activeTexture(gl.TEXTURE2);
-					gl.bindTexture(gl.TEXTURE_2D, texture2);
-
-					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, grid_size, grid_size, 0, gl.RGBA, gl.FLOAT, null);
-
-					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 				}
 
-				var FBO0, FBO1, FBO2;
+				var FBO0, FBO1, _FBO0, _FBO1, FBO2;
 
 				function initFBOs() {
 					FBO0 = gl.createFramebuffer();
@@ -470,6 +482,18 @@
 
 					gl.bindFramebuffer(gl.FRAMEBUFFER, FBO1);
 					gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture1, 0);
+
+					//
+					_FBO0 = gl.createFramebuffer(); // TODO: Replace texture0/FBO0 with better names
+
+					gl.bindFramebuffer(gl.FRAMEBUFFER, _FBO0);
+					gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, _texture0, 0);
+
+					//
+					_FBO1 = gl.createFramebuffer();
+
+					gl.bindFramebuffer(gl.FRAMEBUFFER, _FBO1);
+					gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, _texture1, 0);
 
 					//
 					FBO2 = gl.createFramebuffer();
@@ -489,67 +513,114 @@
 
 				var flag = true;
 
-				function iterateIFS(compShader, color) {
+				function iterateIFS() {
+					gl.viewport(0, 0, points_size, points_size);
+
+					// P = fi(P)
 					gl.disable(gl.BLEND);
 
-					gl.useProgram(compShader);
+					gl.useProgram(prog_comp);
 
-					gl.uniform1f(compShader.frames, frames);
+					gl.uniform1f(prog_comp.frames, frames);
+
+					gl.activeTexture(gl.TEXTURE0);
+					gl.uniform1i(prog_comp.uTexSamp, 0);
 
 					if(flag) {
 						gl.bindFramebuffer(gl.FRAMEBUFFER, FBO1);
-						gl.uniform1i(compShader.uTexSamp, 0);
+
+						gl.bindTexture(gl.TEXTURE_2D, texture0);
 					} else {
 						gl.bindFramebuffer(gl.FRAMEBUFFER, FBO0);
-						gl.uniform1i(compShader.uTexSamp, 1);
+
+						gl.bindTexture(gl.TEXTURE_2D, texture1);
 					}
 
 					gl.bindBuffer(gl.ARRAY_BUFFER, quadVertexPositionBuffer);
-					gl.vertexAttribPointer(compShader.vertexPositionAttribute, quadVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+					gl.vertexAttribPointer(prog_comp.vertexPositionAttribute, quadVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
 					gl.drawArrays(gl.TRIANGLE_STRIP, 0, quadVertexPositionBuffer.numItems);
 
-					//
-					gl.viewport(0, 0, grid_size, grid_size);
+					// C += Ci
+					gl.uniform1f(prog_comp_col.frames, frames);
+					gl.uniform1i(prog_comp_col.uTexSamp, 0);
 
-					if(frames > 20) {
-						gl.useProgram(prog_points);
+					if(flag) {
+						gl.bindFramebuffer(gl.FRAMEBUFFER, _FBO1);
 
-						if(flag) {
-							gl.uniform1i(prog_points.uTexSamp, 1);
-						} else {
-							gl.uniform1i(prog_points.uTexSamp, 0);
-						}
+						gl.bindTexture(gl.TEXTURE_2D, _texture0);
+					} else {
+						gl.bindFramebuffer(gl.FRAMEBUFFER, _FBO0);
 
-						gl.bindBuffer(gl.ARRAY_BUFFER, pointsVertexPositionBuffer);
-						gl.vertexAttribPointer(prog_points.vertexPositionAttribute, pointsVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-						gl.enable(gl.BLEND);
-
-						//
-						gl.blendFunc(gl.ONE, gl.ONE);
-
-						gl.bindFramebuffer(gl.FRAMEBUFFER, FBO2);
-						gl.uniform4f(prog_points.color, color[0], color[1], color[2], 1);
-						gl.drawArrays(gl.POINTS, 0, pointsVertexPositionBuffer.numItems);
-
-						gl.disable(gl.BLEND);
+						gl.bindTexture(gl.TEXTURE_2D, _texture1);
 					}
+
+					gl.bindBuffer(gl.ARRAY_BUFFER, quadVertexPositionBuffer);
+					gl.vertexAttribPointer(prog_comp_col.vertexPositionAttribute, quadVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+					gl.drawArrays(gl.TRIANGLE_STRIP, 0, quadVertexPositionBuffer.numItems);
 
 					flag = !flag;
 				}
 
-				function drawScene() {
-					gl.viewport(0, 0, points_size, points_size);
+				function plotHistogram() {
+					// Plot points into "histogram"
+					gl.viewport(0, 0, grid_size, grid_size);
 
-					iterateIFS(prog_comp, [0.1, 0.43, 1.0]);
+					gl.useProgram(prog_points);
+
+					gl.uniform1i(prog_points.uTexSamp_Points, 0);
+					gl.uniform1i(prog_points.uTexSamp_Colors, 1);
+
+					if(flag) {
+						gl.activeTexture(gl.TEXTURE0);
+						gl.bindTexture(gl.TEXTURE_2D, texture1);
+
+						gl.activeTexture(gl.TEXTURE1);
+						gl.bindTexture(gl.TEXTURE_2D, _texture1);
+					} else {
+						gl.activeTexture(gl.TEXTURE0);
+						gl.bindTexture(gl.TEXTURE_2D, texture0);
+
+						gl.activeTexture(gl.TEXTURE1);
+						gl.bindTexture(gl.TEXTURE_2D, _texture0);
+					}
+
+					gl.bindBuffer(gl.ARRAY_BUFFER, pointsVertexPositionBuffer);
+					gl.vertexAttribPointer(prog_points.vertexPositionAttribute, pointsVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+					gl.enable(gl.BLEND);
 
 					//
+					gl.blendFunc(gl.ONE, gl.ONE);
+
+					gl.bindFramebuffer(gl.FRAMEBUFFER, FBO2);
+
+					gl.drawArrays(gl.POINTS, 0, pointsVertexPositionBuffer.numItems);
+
+					gl.disable(gl.BLEND);
+				}
+
+				function drawScene() {
+					//
+					iterateIFS();
+
+					//
+					if(frames > 20) {
+						plotHistogram();
+					}
+
+					//
+					gl.disable(gl.BLEND);
+
 					gl.viewport(0, 0, canvas_size, canvas_size);
 
 					gl.useProgram(prog_show);
 
-					gl.uniform1i(prog_show.uTexSamp, 2);
+					gl.activeTexture(gl.TEXTURE0);
+					gl.bindTexture(gl.TEXTURE_2D, texture2);
+
+					gl.uniform1i(prog_show.uTexSamp, 0);
 					gl.uniform1f(prog_show.frames, frames);
 
 					gl.bindFramebuffer(gl.FRAMEBUFFER, null);
