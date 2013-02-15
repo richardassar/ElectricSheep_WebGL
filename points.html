@@ -129,11 +129,11 @@
 				float r = rand(tex);
 
 				if(r < 1.0 / 3.0) {
-					col += vec3(1.0, 0.0, 0.0);
+					col = (col + vec3(1.0, 0.0, 0.0)) / 2.0;
 				} else if(r < 2.0 / 3.0) {
-					col += vec3(0.0, 1.0, 0.0);
+					col = (col + vec3(0.0, 1.0, 0.0)) / 2.0;
 				} else {
-					col += vec3(0.0, 0.0, 1.0);
+					col = (col + vec3(0.0, 0.0, 1.0)) / 2.0;
 				}
 
 				gl_FragColor = vec4(col, 1.0);
@@ -374,7 +374,8 @@
 
 					prog_points.color = gl.getUniformLocation(prog_points, "color");
 
-					prog_points.uTexSamp = gl.getUniformLocation(prog_points, "uTexSamp");
+					prog_points.uTexSamp_Points = gl.getUniformLocation(prog_points, "uTexSamp_Points");
+					prog_points.uTexSamp_Colors = gl.getUniformLocation(prog_points, "uTexSamp_Colors");
 
 					//
 					prog_comp = compileShader("shader-direct-vs", "shader-comp-fs", {RESOLUTION: points_size});
@@ -440,7 +441,7 @@
 					//
 					_texture0 = gl.createTexture();
 
-					gl.bindTexture(gl.TEXTURE_2D, texture1);
+					gl.bindTexture(gl.TEXTURE_2D, _texture0);
 
 					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, tSize, tSize, 0, gl.RGBA, gl.FLOAT, null);
 
@@ -450,7 +451,7 @@
 					//
 					_texture1 = gl.createTexture();
 
-					gl.bindTexture(gl.TEXTURE_2D, texture1);
+					gl.bindTexture(gl.TEXTURE_2D, _texture1);
 
 					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, tSize, tSize, 0, gl.RGBA, gl.FLOAT, null);
 
@@ -516,23 +517,20 @@
 				function iterateIFS() {
 					gl.viewport(0, 0, points_size, points_size);
 
-					// P = fi(P)
 					gl.disable(gl.BLEND);
+					gl.activeTexture(gl.TEXTURE0);
 
+					// P = fi(P)
 					gl.useProgram(prog_comp);
 
 					gl.uniform1f(prog_comp.frames, frames);
-
-					gl.activeTexture(gl.TEXTURE0);
 					gl.uniform1i(prog_comp.uTexSamp, 0);
 
 					if(flag) {
 						gl.bindFramebuffer(gl.FRAMEBUFFER, FBO1);
-
 						gl.bindTexture(gl.TEXTURE_2D, texture0);
 					} else {
 						gl.bindFramebuffer(gl.FRAMEBUFFER, FBO0);
-
 						gl.bindTexture(gl.TEXTURE_2D, texture1);
 					}
 
@@ -542,16 +540,16 @@
 					gl.drawArrays(gl.TRIANGLE_STRIP, 0, quadVertexPositionBuffer.numItems);
 
 					// C += Ci
+					gl.useProgram(prog_comp_col);
+
 					gl.uniform1f(prog_comp_col.frames, frames);
 					gl.uniform1i(prog_comp_col.uTexSamp, 0);
 
 					if(flag) {
 						gl.bindFramebuffer(gl.FRAMEBUFFER, _FBO1);
-
 						gl.bindTexture(gl.TEXTURE_2D, _texture0);
 					} else {
 						gl.bindFramebuffer(gl.FRAMEBUFFER, _FBO0);
-
 						gl.bindTexture(gl.TEXTURE_2D, _texture1);
 					}
 
