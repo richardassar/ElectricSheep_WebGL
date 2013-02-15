@@ -92,10 +92,8 @@
 				float r = rand(tex);
 
 				if(r < 1.0 / 3.0) {
-					//point = vec2(point.x * 0.5, point.y * 0.5);
 					point = vec2(cos(3.14 * point.x) * cosh(point.y), -sin(3.14 * point.x) * sinh(point.y));
 				} else if(r < 2.0 / 3.0) {
-					//point = vec2(point.x * 0.5 + 0.5, point.y * 0.5);
 					point = l * vec2(sin(a * l), -cos(a * l));
 				} else {
 					point = vec2(point.x * 0.5 + 0.25, point.y * 0.5 + 0.5);
@@ -594,8 +592,8 @@
 
 				var gl;
 				var canvas;
-				var canvas_size = grid_size = 1024;
-				var points_size = 256;
+				var canvas_size = grid_size = 2048;
+				var points_size = 512;
 
 			  	function main() {
 					canvas = document.getElementById("screen");
