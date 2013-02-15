@@ -97,11 +97,14 @@
 				float r = rand(tex);
 
 				if(r < 1.0 / 3.0) {
-					point = vec2(cos(PI * point.x) * cosh(point.y), -sin(PI * point.x) * sinh(point.y));
+					point = vec2(point.x * 0.5, point.y * 0.5);
+					//point = vec2(cos(PI * point.x) * cosh(point.y), -sin(PI * point.x) * sinh(point.y));
 				} else if(r < 2.0 / 3.0) {
-					point = l * vec2(0.9 * sin(a * l), 0.5 * cos(a * l));
+					point = vec2(point.x * 0.5 + 0.5, point.y * 0.5);
+					//point = l * vec2(0.9 * sin(a * l), 0.5 * cos(a * l));
 				} else {
-					point = exp(point.x - 1.0) * vec2(cos(3.14 * point.y), sin(3.14 * point.y));
+					point = vec2(point.x * 0.5 + 0.25, point.y * 0.5 + 0.5);
+					//point = exp(point.x - 1.0) * vec2(cos(3.14 * point.y), sin(3.14 * point.y));
 				}
 
 				gl_FragColor = vec4(point, 0.0, 1.0);
