@@ -56,17 +56,47 @@
 			    return fract(sin(dot(co.xy, vec2(12.9898 + frames,78.233))) * (43758.5453));
 			}
 
+			// COSH Function (Hyperbolic Cosine) http://machinesdontcare.wordpress.com/2008/03/10/glsl-cosh-sinh-tanh/
+			float cosh(float val)
+			{
+				float tmp = exp(val);
+				float cosH = (tmp + 1.0 / tmp) / 2.0;
+				return cosH;
+			}
+
+			// TANH Function (Hyperbolic Tangent) http://machinesdontcare.wordpress.com/2008/03/10/glsl-cosh-sinh-tanh/
+			float tanh(float val)
+			{
+				float tmp = exp(val);
+				float tanH = (tmp - 1.0 / tmp) / (tmp + 1.0 / tmp);
+				return tanH;
+			}
+
+			// SINH Function (Hyperbolic Sine) http://machinesdontcare.wordpress.com/2008/03/10/glsl-cosh-sinh-tanh/
+			float sinh(float val)
+			{
+				float tmp = exp(val);
+				float sinH = (tmp - 1.0 / tmp) / 2.0;
+				return sinH;
+			}
+
 			void main(void) {
 				vec2 tex = gl_FragCoord.xy / <%= RESOLUTION %>;
 
 				vec2 point = texture2D(uTexSamp, tex).rg;
 
+				float l = length(point);
+				float a = atan(point.x/point.y);
+				float b = atan(point.y/point.x);
+
 				float r = rand(tex);
 
 				if(r < 1.0 / 3.0) {
-					point = vec2(point.x * 0.5, point.y * 0.5);
+					//point = vec2(point.x * 0.5, point.y * 0.5);
+					point = vec2(cos(3.14 * point.x) * cosh(point.y), -sin(3.14 * point.x) * sinh(point.y));
 				} else if(r < 2.0 / 3.0) {
-					point = vec2(point.x * 0.5 + 0.5, point.y * 0.5);
+					//point = vec2(point.x * 0.5 + 0.5, point.y * 0.5);
+					point = l * vec2(sin(a * l), -cos(a * l));
 				} else {
 					point = vec2(point.x * 0.5 + 0.25, point.y * 0.5 + 0.5);
 				}
@@ -136,7 +166,7 @@
 
 			varying vec4 fragColor;
 
-			/// COSH Function (Hyperbolic Cosine) http://machinesdontcare.wordpress.com/2008/03/10/glsl-cosh-sinh-tanh/
+			// COSH Function (Hyperbolic Cosine) http://machinesdontcare.wordpress.com/2008/03/10/glsl-cosh-sinh-tanh/
 			float cosh(float val)
 			{
 				float tmp = exp(val);
@@ -532,7 +562,7 @@
 					var rand = Math.floor(Math.random()*3);
 
 					//if(rand == 0) {
-					iterateIFS(prog_comp_1, [0.1, 0.23, 0.6]);
+					iterateIFS(prog_comp_1, [0.2, 0.43, 1.0]);
 					//} else if(rand == 1) {
 						//iterateIFS(prog_comp_2, [0.6, 0.43, 0.23]);
 					//} else if(rand == 2) {
@@ -564,8 +594,8 @@
 
 				var gl;
 				var canvas;
-				var canvas_size = grid_size = 512;
-				var points_size = 512;
+				var canvas_size = grid_size = 1024;
+				var points_size = 256;
 
 			  	function main() {
 					canvas = document.getElementById("screen");
