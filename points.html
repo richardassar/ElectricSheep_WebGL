@@ -15,10 +15,8 @@
 
 			#overlay {
 				position: absolute;
-				left: 0;
+				right: 0;
 				top: 0;
-				width: 100%;
-				height: 100%;
 			}
 
 			#overlay p {
@@ -38,7 +36,7 @@
 				vec3 colorTexel = texture2D(uTexSamp, gl_FragCoord.xy / <%= RESOLUTION %>).rgb;
 				float alpha = texture2D(uTexSamp, gl_FragCoord.xy / <%= RESOLUTION %>).a;
 
-				vec3 col = colorTexel * log(alpha + 1.0) / (alpha * log(frames + 1.0));
+				vec3 col = colorTexel * log(alpha) / (alpha * log(frames));
 
 				col = vec3(pow(col.r, 1.0 / 2.2), pow(col.g, 1.0 / 2.2), pow(col.b, 1.0 / 2.2)); // Brightness correction
 
@@ -97,13 +95,13 @@
 				float r = rand(tex);
 
 				if(r < 1.0 / 3.0) {
-					//point = vec2(point.x * 0.5, point.y * 0.5);
+					//point = vec2(point.x * 0.5 - 0.5, point.y * 0.5 - 0.5);
 					point = vec2(cos(PI * point.x) * cosh(point.y), -sin(PI * point.x) * sinh(point.y));
 				} else if(r < 2.0 / 3.0) {
-					//point = vec2(point.x * 0.5 + 0.5, point.y * 0.5);
+					//point = vec2(point.x * 0.5 + 0.5, point.y * 0.5 - 0.5);
 					point = l * vec2(0.9 * sin(a * l), 0.5 * cos(a * l));
 				} else {
-					//point = vec2(point.x * 0.5 + 0.25, point.y * 0.5 + 0.5);
+					//point = vec2(point.x * 0.5, point.y * 0.5 + 0.5);
 					point = exp(point.x - 1.0) * vec2(cos(3.14 * point.y), sin(3.14 * point.y));
 				}
 
@@ -132,11 +130,20 @@
 				float r = rand(tex);
 
 				if(r < 1.0 / 3.0) {
-					col = (col + vec3(1.0, 0.0, 0.0)) / 2.0;
+					col = (col + vec3(
+						0.5882352941176471,0.5843137254901961,0.7803921568627451
+						//1.0, 0.0, 0.0
+					)) / 2.0;
 				} else if(r < 2.0 / 3.0) {
-					col = (col + vec3(0.0, 1.0, 0.0)) / 2.0;
+					col = (col + vec3(
+						1.0, 1.0, 1.0
+						//0.0, 1.0, 0.0
+					)) / 2.0;
 				} else {
-					col = (col + vec3(0.0, 0.0, 1.0)) / 2.0;
+					col = (col + vec3(
+						1,0.6941176470588235,0.6941176470588235
+						//0.0, 0.0, 1.0
+					)) / 2.0;
 				}
 
 				gl_FragColor = vec4(col, 1.0);
@@ -421,7 +428,7 @@
 								-1 + 2 * Math.random(),
 								-1 + 2 * Math.random(),
 								0,
-								1
+								0
 							);
 						}
 					}
@@ -615,16 +622,7 @@
 					gl.disable(gl.BLEND);
 				}
 
-				function drawScene() {
-					//
-					iterateIFS();
-
-					//
-					if(frames > 20) {
-						plotHistogram();
-					}
-
-					//
+				function display() {
 					gl.disable(gl.BLEND);
 
 					gl.viewport(0, 0, canvas_size, canvas_size);
@@ -643,6 +641,19 @@
 					gl.vertexAttribPointer(prog_comp.vertexPositionAttribute, quadVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
 					gl.drawArrays(gl.TRIANGLE_STRIP, 0, quadVertexPositionBuffer.numItems);
+				}
+
+				function drawScene() {
+					//
+					iterateIFS();
+
+					//
+					if(frames > 20) {
+						plotHistogram();
+					}
+
+					//
+					display();
 
 					//
 					fps++;
