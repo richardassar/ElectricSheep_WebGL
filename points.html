@@ -52,6 +52,9 @@
 			uniform sampler2D uTexSamp;
 			uniform float frames;
 
+			const float PI = 3.141592;
+
+			// Rand
 			float rand(vec2 co){
 			    return fract(sin(dot(co.xy, vec2(12.9898 + frames,78.233))) * (43758.5453));
 			}
@@ -92,49 +95,16 @@
 				float r = rand(tex);
 
 				if(r < 1.0 / 3.0) {
-					point = vec2(cos(3.14 * point.x) * cosh(point.y), -sin(3.14 * point.x) * sinh(point.y));
+					point = vec2(cos(PI * point.x) * cosh(point.y), -sin(PI * point.x) * sinh(point.y));
 				} else if(r < 2.0 / 3.0) {
-					point = l * vec2(sin(a * l), -cos(a * l));
+					point = l * vec2(0.9 * sin(a * l), 0.5 * cos(a * l));
 				} else {
-					point = vec2(point.x * 0.5 + 0.25, point.y * 0.5 + 0.5);
+					point = exp(point.x - 1.0) * vec2(cos(3.14 * point.y), sin(3.14 * point.y));
 				}
 
 				gl_FragColor = vec4(point, 0.0, 1.0);
 			}
 		</script>
-
-		<script id="shader-comp-2-fs" type="x-shader/x-fragment">
-			#ifdef GL_ES
-				precision highp float;
-			#endif
-
-			uniform sampler2D uTexSamp;
-
-			void main(void) {
-				vec2 point = texture2D(uTexSamp, gl_FragCoord.xy / <%= RESOLUTION %>).rg;
-
-				point = vec2(point.x * 0.5 + 0.5, point.y * 0.5);
-
-				gl_FragColor = vec4(point.xy, 0.0, 1.0);
-			}
-		</script>
-
-		<script id="shader-comp-3-fs" type="x-shader/x-fragment">
-			#ifdef GL_ES
-				precision highp float;
-			#endif
-
-			uniform sampler2D uTexSamp;
-
-			void main(void) {
-				vec2 point = texture2D(uTexSamp, gl_FragCoord.xy / <%= RESOLUTION %>).rg;
-
-				point = vec2(point.x * 0.5 + 0.25, point.y * 0.5 + 0.5);
-
-				gl_FragColor = vec4(point.xy, 0.0, 1.0);
-			}
-		</script>
-
 
 		<script id="shader-direct-vs" type="x-shader/x-vertex">
 			attribute vec3 aVertexPosition;
@@ -210,6 +180,7 @@
 				//point = pow(r, sin(a)) * vec2(cos(a), sin(a));
 				//point = 1.0 / r * vec2((point.x - point.y) * (point.x + point.y), 2.0 * point.x * point.y);
 				//point = vec2(sin(point.x)/cos(point.y), tan(point.y));
+
 				fragColor = color;
 				gl_Position = vec4(point.xy, 0.0, 1.0);
 			}
@@ -352,10 +323,10 @@
 
 					gl.bufferData(gl.ARRAY_BUFFER, squareData, gl.STATIC_DRAW);
 
-					gl.vertexAttribPointer(prog_comp_1.vertexPositionAttribute, quadVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+					gl.vertexAttribPointer(prog_comp.vertexPositionAttribute, quadVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 				}
 
-				var prog_points, prog_comp_1, prog_comp_2, prog_comp_3, prog_show;
+				var prog_points, prog_comp, prog_comp_2, prog_comp_3, prog_show;
 
 				function initShaders() {
 					//
@@ -369,29 +340,13 @@
 					prog_points.uTexSamp = gl.getUniformLocation(prog_points, "uTexSamp");
 
 					//
-					prog_comp_1 = compileShader("shader-direct-vs", "shader-comp-1-fs", {RESOLUTION: points_size});
+					prog_comp = compileShader("shader-direct-vs", "shader-comp-1-fs", {RESOLUTION: points_size});
 
-					prog_comp_1.vertexPositionAttribute = gl.getAttribLocation(prog_comp_1, "aVertexPosition");
-					gl.enableVertexAttribArray(prog_comp_1.vertexPositionAttribute);
+					prog_comp.vertexPositionAttribute = gl.getAttribLocation(prog_comp, "aVertexPosition");
+					gl.enableVertexAttribArray(prog_comp.vertexPositionAttribute);
 
-					prog_comp_1.uTexSamp = gl.getUniformLocation(prog_comp_1, "uTexSamp");
-					prog_comp_1.frames = gl.getUniformLocation(prog_comp_1, "frames");
-
-					//
-					prog_comp_2 = compileShader("shader-direct-vs", "shader-comp-2-fs", {RESOLUTION: points_size});
-
-					prog_comp_2.vertexPositionAttribute = gl.getAttribLocation(prog_comp_2, "aVertexPosition");
-					gl.enableVertexAttribArray(prog_comp_1.vertexPositionAttribute);
-
-					prog_comp_2.uTexSamp = gl.getUniformLocation(prog_comp_2, "uTexSamp");
-
-					//
-					prog_comp_3 = compileShader("shader-direct-vs", "shader-comp-3-fs", {RESOLUTION: points_size});
-
-					prog_comp_3.vertexPositionAttribute = gl.getAttribLocation(prog_comp_3, "aVertexPosition");
-					gl.enableVertexAttribArray(prog_comp_1.vertexPositionAttribute);
-
-					prog_comp_3.uTexSamp = gl.getUniformLocation(prog_comp_2, "uTexSamp");
+					prog_comp.uTexSamp = gl.getUniformLocation(prog_comp, "uTexSamp");
+					prog_comp.frames = gl.getUniformLocation(prog_comp, "frames");
 
 					//
 					prog_show = compileShader("shader-direct-vs", "shader-show-fs", {RESOLUTION: canvas.width});
@@ -454,17 +409,6 @@
 
 					gl.activeTexture(gl.TEXTURE2);
 					gl.bindTexture(gl.TEXTURE_2D, texture2);
-
-					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, grid_size, grid_size, 0, gl.RGBA, gl.FLOAT, null);
-
-					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-
-					//
-					texture3 = gl.createTexture();
-
-					gl.activeTexture(gl.TEXTURE3);
-					gl.bindTexture(gl.TEXTURE_2D, texture3);
 
 					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, grid_size, grid_size, 0, gl.RGBA, gl.FLOAT, null);
 
@@ -559,13 +503,7 @@
 
 					var rand = Math.floor(Math.random()*3);
 
-					//if(rand == 0) {
-					iterateIFS(prog_comp_1, [0.2, 0.43, 1.0]);
-					//} else if(rand == 1) {
-						//iterateIFS(prog_comp_2, [0.6, 0.43, 0.23]);
-					//} else if(rand == 2) {
-						//iterateIFS(prog_comp_3, [0.23, 0.7, 0.123]);
-					//}
+					iterateIFS(prog_comp, [0.1, 0.43, 1.0]);
 
 					//
 					gl.viewport(0, 0, canvas_size, canvas_size);
@@ -578,7 +516,7 @@
 					gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
 					gl.bindBuffer(gl.ARRAY_BUFFER, quadVertexPositionBuffer);
-					gl.vertexAttribPointer(prog_comp_1.vertexPositionAttribute, quadVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+					gl.vertexAttribPointer(prog_comp.vertexPositionAttribute, quadVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
 					gl.drawArrays(gl.TRIANGLE_STRIP, 0, quadVertexPositionBuffer.numItems);
 
