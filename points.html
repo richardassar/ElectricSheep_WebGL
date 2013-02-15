@@ -396,14 +396,14 @@
 					prog_show.frames = gl.getUniformLocation(prog_show, "frames");
 				}
 
-				var texture, texture1, texture2;
+				var texture0, texture1, texture2;
 
 				function initTextures() {
 					//
-					texture = gl.createTexture();
+					texture0 = gl.createTexture();
 
 					gl.activeTexture(gl.TEXTURE0);
-					gl.bindTexture(gl.TEXTURE_2D, texture);
+					gl.bindTexture(gl.TEXTURE_2D, texture0);
 
 					var pixels = [], tSize = points_size;
 
@@ -463,7 +463,7 @@
 					FBO0 = gl.createFramebuffer();
 
 					gl.bindFramebuffer(gl.FRAMEBUFFER, FBO0);
-					gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+					gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture0, 0);
 
 					//
 					FBO1 = gl.createFramebuffer();
