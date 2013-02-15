@@ -50,13 +50,28 @@
 			#endif
 
 			uniform sampler2D uTexSamp;
+			uniform float frames;
+
+			float rand(vec2 co){
+			    return fract(sin(dot(co.xy, vec2(12.9898 + frames,78.233))) * (43758.5453));
+			}
 
 			void main(void) {
-				vec2 point = texture2D(uTexSamp, gl_FragCoord.xy / <%= RESOLUTION %>).rg;
+				vec2 tex = gl_FragCoord.xy / <%= RESOLUTION %>;
 
-				point = vec2(point.x / 2.0, point.y / 2.0);
+				vec2 point = texture2D(uTexSamp, tex).rg;
 
-				gl_FragColor = vec4(point.xy, 0.0, 0.0);
+				float r = rand(tex);
+
+				if(r < 1.0 / 3.0) {
+					point = vec2(point.x * 0.5, point.y * 0.5);
+				} else if(r < 2.0 / 3.0) {
+					point = vec2(point.x * 0.5 + 0.5, point.y * 0.5);
+				} else {
+					point = vec2(point.x * 0.5 + 0.25, point.y * 0.5 + 0.5);
+				}
+
+				gl_FragColor = vec4(point, 0.0, 1.0);
 			}
 		</script>
 
@@ -70,9 +85,9 @@
 			void main(void) {
 				vec2 point = texture2D(uTexSamp, gl_FragCoord.xy / <%= RESOLUTION %>).rg;
 
-				point = vec2((point.x + 1.0) / 2.0, point.y / 2.0);
+				point = vec2(point.x * 0.5 + 0.5, point.y * 0.5);
 
-				gl_FragColor = vec4(point.xy, 0.0, 0.0);
+				gl_FragColor = vec4(point.xy, 0.0, 1.0);
 			}
 		</script>
 
@@ -86,9 +101,9 @@
 			void main(void) {
 				vec2 point = texture2D(uTexSamp, gl_FragCoord.xy / <%= RESOLUTION %>).rg;
 
-				point = vec2(point.x / 2.0, (point.y + 1.0) / 2.0);
+				point = vec2(point.x * 0.5 + 0.25, point.y * 0.5 + 0.5);
 
-				gl_FragColor = vec4(point.xy, 0.0, 0.0);
+				gl_FragColor = vec4(point.xy, 0.0, 1.0);
 			}
 		</script>
 
@@ -332,6 +347,7 @@
 					gl.enableVertexAttribArray(prog_comp_1.vertexPositionAttribute);
 
 					prog_comp_1.uTexSamp = gl.getUniformLocation(prog_comp_1, "uTexSamp");
+					prog_comp_1.frames = gl.getUniformLocation(prog_comp_1, "frames");
 
 					//
 					prog_comp_2 = compileShader("shader-direct-vs", "shader-comp-2-fs", {RESOLUTION: points_size});
@@ -348,7 +364,6 @@
 					gl.enableVertexAttribArray(prog_comp_1.vertexPositionAttribute);
 
 					prog_comp_3.uTexSamp = gl.getUniformLocation(prog_comp_2, "uTexSamp");
-
 
 					//
 					prog_show = compileShader("shader-direct-vs", "shader-show-fs", {RESOLUTION: canvas.width});
@@ -374,7 +389,7 @@
 								-1 + 2 * Math.random(),
 								-1 + 2 * Math.random(),
 								0,
-								0
+								1
 							);
 						}
 					}
@@ -464,6 +479,8 @@
 				function iterateIFS(compShader, color) {
 					gl.useProgram(compShader);
 
+					gl.uniform1f(compShader.frames, frames);
+
 					if(flag) {
 						gl.bindFramebuffer(gl.FRAMEBUFFER, FBO1);
 						gl.uniform1i(compShader.uTexSamp, 0);
@@ -480,7 +497,7 @@
 					//
 					gl.viewport(0, 0, grid_size, grid_size);
 
-					if(frames > 10) {
+					if(frames > 20) {
 						gl.useProgram(prog_points);
 
 						if(flag) {
@@ -514,13 +531,13 @@
 
 					var rand = Math.floor(Math.random()*3);
 
-					if(rand == 0) {
-						iterateIFS(prog_comp_1, [0.1, 0.23, 0.6]);
-					} else if(rand == 1) {
-						iterateIFS(prog_comp_2, [0.6, 0.43, 0.23]);
-					} else if(rand == 2) {
-						iterateIFS(prog_comp_3, [0.23, 0.7, 0.123]);
-					}
+					//if(rand == 0) {
+					iterateIFS(prog_comp_1, [0.1, 0.23, 0.6]);
+					//} else if(rand == 1) {
+						//iterateIFS(prog_comp_2, [0.6, 0.43, 0.23]);
+					//} else if(rand == 2) {
+						//iterateIFS(prog_comp_3, [0.23, 0.7, 0.123]);
+					//}
 
 					//
 					gl.viewport(0, 0, canvas_size, canvas_size);
@@ -538,17 +555,17 @@
 					gl.drawArrays(gl.TRIANGLE_STRIP, 0, quadVertexPositionBuffer.numItems);
 
 					//
-
 					fps++;
 					frames++;
 
-					requestAnimFrame(drawScene);
+					//requestAnimFrame(drawScene);
+					setTimeout(drawScene, 0);
 				}
 
 				var gl;
 				var canvas;
 				var canvas_size = grid_size = 512;
-				var points_size = 1024;
+				var points_size = 512;
 
 			  	function main() {
 					canvas = document.getElementById("screen");
