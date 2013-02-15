@@ -24,6 +24,14 @@
 			}
 		</style>
 
+		<canvas id="screen"></canvas>
+
+		<div id="overlay">
+			<p id="fps-counter"></p>
+			<input id="brightness" type="range" min="0" max="2.5" step="0.0001" value="2.2"/>
+			<button onclick="save();">Save</button>
+		</div>
+
 		<script id="shader-show-fs" type="x-shader/x-fragment">
 			#ifdef GL_ES
 				precision highp float;
@@ -31,6 +39,7 @@
 
 			uniform sampler2D uTexSamp;
 			uniform float frames;
+			uniform float brightness;
 
 			void main(void) {
 				vec3 colorTexel = texture2D(uTexSamp, gl_FragCoord.xy / <%= RESOLUTION %>).rgb;
@@ -38,7 +47,7 @@
 
 				vec3 col = colorTexel * log(alpha) / (alpha * log(frames));
 
-				col = vec3(pow(col.r, 1.0 / 2.2), pow(col.g, 1.0 / 2.2), pow(col.b, 1.0 / 2.2)); // Brightness correction
+				col = vec3(pow(col.r, 1.0 / brightness), pow(col.g, 1.0 / brightness), pow(col.b, 1.0 / brightness)); // Brightness correction
 
 				gl_FragColor = vec4(col, 1.0);
 			}
@@ -98,8 +107,7 @@
 					//point = vec2(point.x * 0.5 - 0.5, point.y * 0.5 - 0.5);
 					point = vec2(cos(PI * point.x) * cosh(point.y), -sin(PI * point.x) * sinh(point.y));
 				} else if(r < 2.0 / 3.0) {
-					//point = vec2(point.x * 0.5 + 0.5, point.y * 0.5 - 0.5);
-					point = l * vec2(0.9 * sin(a * l), 0.5 * cos(a * l));
+					point = a / PI * vec2(sin(PI * l), cos(PI * l));
 				} else {
 					//point = vec2(point.x * 0.5, point.y * 0.5 + 0.5);
 					point = exp(point.x - 1.0) * vec2(cos(3.14 * point.y), sin(3.14 * point.y));
@@ -136,7 +144,7 @@
 					)) / 2.0;
 				} else if(r < 2.0 / 3.0) {
 					col = (col + vec3(
-						1.0, 1.0, 1.0
+						0,1,0.5647058823529412
 						//0.0, 1.0, 0.0
 					)) / 2.0;
 				} else {
@@ -232,12 +240,6 @@
 			//point = 1.0 / r * vec2((point.x - point.y) * (point.x + point.y), 2.0 * point.x * point.y);
 			//point = vec2(sin(point.x)/cos(point.y), tan(point.y));
 		</script>
-
-		<canvas id="screen"></canvas>
-
-		<div id="overlay">
-			<p id="fps-counter"></p>
-		</div>
 
 		<script>
 			(function() {
@@ -410,6 +412,7 @@
 
 					prog_show.uTexSamp = gl.getUniformLocation(prog_show, "uTexSamp");
 					prog_show.frames = gl.getUniformLocation(prog_show, "frames");
+					prog_show.brightness = gl.getUniformLocation(prog_show, "brightness");
 				}
 
 				var texture0, texture1, _texture0, _texture1, texture2;
@@ -634,6 +637,7 @@
 
 					gl.uniform1i(prog_show.uTexSamp, 0);
 					gl.uniform1f(prog_show.frames, frames);
+					gl.uniform1f(prog_show.brightness, brightnessElement.value);
 
 					gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
@@ -663,10 +667,27 @@
 					setTimeout(drawScene, 0);
 				}
 
+				function save() {
+					//
+					var imgData = canvas.toDataURL();
+
+					//
+					var imgElement = document.createElement('img');
+
+					imgElement.src = imgData;
+
+					//
+					document.body.appendChild(imgElement);
+				}
+
+				window.save = save;
+
 				var gl;
 				var canvas;
-				var canvas_size = grid_size = 1024;
-				var points_size = 512;
+				var canvas_size = grid_size = 2048;
+				var points_size = 1024;
+
+				var brightnessElement = document.querySelector("#brightness");
 
 			  	function main() {
 					canvas = document.getElementById("screen");
