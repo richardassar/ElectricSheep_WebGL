@@ -29,7 +29,7 @@
 		<div id="overlay">
 			<p id="fps-counter"></p>
 			<form name="controls">
-				<input id="brightness" type="range" min="0" max="2.5" step="0.0001" value="2.2"/>
+				<input id="brightness" type="range" min="0" max="4" step="0.0001" value="2.2"/>
 				<button onclick="save();return false;">Save</button>
 				<br/>
 
@@ -80,13 +80,13 @@
 			#endif
 
 			uniform sampler2D uTexSamp;
-			uniform float frames;
+			uniform float seed;
 
 			const float PI = 3.141592;
 
 			// Rand
 			float rand(vec2 co) {
-			    return fract(sin(dot(co, vec2(12.9898 + frames, 78.233))) * 43758.5453);
+			    return fract(sin(dot(co, vec2(12.9898 * seed, 78.233))) * 43758.5453);
 			}
 
 			// COSH Function (Hyperbolic Cosine) http://machinesdontcare.wordpress.com/2008/03/10/glsl-cosh-sinh-tanh/
@@ -125,20 +125,21 @@
 				float r = rand(tex);
 
 				if(r < 1.0 / 3.0) {
-					point = vec2(sin(point.x), sin(point.y));
-					//point = vec2(point.x * 0.5 - 0.5, point.y * 0.5 - 0.5);
+					//point = vec2(sin(point.x), sin(point.y));
+					point = vec2(point.x * 0.5 - 0.5, point.y * 0.5 - 0.5);
 					//point = vec2(cos(2.3 * PI * point.x) * cosh(2.4 * point.y), -sin(2.4 * PI * point.x) * sinh(4.4 * point.y));
 				} else if(r < 2.0 / 3.0) {
-					point = 1.0 / (l * l) * point;
-					//point = vec2(point.x * 0.5 + 0.5, point.y * 0.5 - 0.5);
+					//point = 1.0 / (l * l) * point;
+					point = vec2(point.x * 0.5 + 0.5, point.y * 0.5 - 0.5);
 					//point = a / PI * vec2(3.4*sin(PI * l), 2.3*cos(PI * l));
 				} else {
-					point = vec2(point.x * sin(l*l) - point.y*cos(l*l), point.x*cos(l*l) + point.y*sin(l*l)); //point * r;
-					//point = vec2(point.x * 0.5, point.y * 0.5 + 0.5);
+					//point = vec2(point.x * sin(l*l) - point.y*cos(l*l), point.x*cos(l*l) + point.y*sin(l*l)); //point * r;
+					point = vec2(point.x * 0.5, point.y * 0.5 + 0.5);
 					//point = exp(point.x - 1.0) * vec2(cos(3.14 * point.y), sin(3.14 * point.y));
 				}
 
-				point /= 1.3;
+				//point += vec2(0.1,-0.02);
+				//point /= 1.3;
 
 				//point = vec2(cos(PI * point.x) * cosh(point.y), -sin(PI * point.x) * sinh(point.y));
 
@@ -152,11 +153,11 @@
 			#endif
 
 			uniform sampler2D uTexSamp;
-			uniform float frames;
+			uniform float seed;
 
 			// Rand
 			float rand(vec2 co) {
-			    return fract(sin(dot(co.xy, vec2(12.9898 + frames, 78.233))) * 43758.5453);
+			    return fract(sin(dot(co.xy, vec2(12.9898 * seed, 78.233))) * 43758.5453);
 			}
 
 			void main(void) {
@@ -168,7 +169,7 @@
 
 				if(r < 1.0 / 3.0) {
 					col = (col + vec3(
-						0.5882352941176471,0.5843137254901961,0.7803921568627451
+						0.1882352941176471,0.2843137254901961,0.7803921568627451
 						//1.0, 0.0, 0.0
 					)) / 2.0;
 				} else if(r < 2.0 / 3.0) {
@@ -178,7 +179,7 @@
 					)) / 2.0;
 				} else {
 					col = (col + vec3(
-						1,0.6941176470588235,0.6941176470588235
+						1,0.2941176470588235,0.0941176470588235
 						//0.0, 0.0, 1.0
 					)) / 2.0;
 				}
@@ -425,7 +426,7 @@
 					gl.enableVertexAttribArray(prog_comp.vertexPositionAttribute);
 
 					prog_comp.uTexSamp = gl.getUniformLocation(prog_comp, "uTexSamp");
-					prog_comp.frames = gl.getUniformLocation(prog_comp, "frames");
+					prog_comp.seed = gl.getUniformLocation(prog_comp, "seed");
 
 					//
 					prog_comp_col = compileShader("shader-direct-vs", "shader-comp-col-fs", {RESOLUTION: points_size});
@@ -434,7 +435,7 @@
 					gl.enableVertexAttribArray(prog_comp_col.vertexPositionAttribute);
 
 					prog_comp_col.uTexSamp = gl.getUniformLocation(prog_comp_col, "uTexSamp");
-					prog_comp_col.frames = gl.getUniformLocation(prog_comp_col, "frames");
+					prog_comp_col.seed = gl.getUniformLocation(prog_comp_col, "seed");
 
 					//
 					prog_show = compileShader("shader-direct-vs", "shader-show-fs", {RESOLUTION: canvas.width});
@@ -580,10 +581,12 @@
 					gl.disable(gl.BLEND);
 					gl.activeTexture(gl.TEXTURE0);
 
+					var seed = Math.random();
+
 					// P = fi(P)
 					gl.useProgram(prog_comp);
 
-					gl.uniform1f(prog_comp.frames, frames);
+					gl.uniform1f(prog_comp.seed, seed);
 					gl.uniform1i(prog_comp.uTexSamp, 0);
 
 					if(flag) {
@@ -602,7 +605,7 @@
 					// C += Ci
 					gl.useProgram(prog_comp_col);
 
-					gl.uniform1f(prog_comp_col.frames, frames);
+					gl.uniform1f(prog_comp_col.seed, seed);
 					gl.uniform1i(prog_comp_col.uTexSamp, 0);
 
 					if(flag) {
@@ -773,8 +776,8 @@
 
 				var gl;
 				var canvas;
-				var canvas_size = grid_size = 512;
-				var points_size = 512;
+				var canvas_size = grid_size = 1024;
+				var points_size = 1024;
 
 				var brightnessElement = document.querySelector("#brightness");
 				var radioButtonElements = document.getElementsByName('displayMode');
