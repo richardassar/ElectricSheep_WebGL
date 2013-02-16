@@ -28,9 +28,30 @@
 
 		<div id="overlay">
 			<p id="fps-counter"></p>
-			<input id="brightness" type="range" min="0" max="2.5" step="0.0001" value="2.2"/>
-			<button onclick="save();">Save</button>
+			<form name="controls">
+				<input id="brightness" type="range" min="0" max="2.5" step="0.0001" value="2.2"/>
+				<button onclick="save();">Save</button>
+				<br/>
+
+				<label><input type="radio" name="displayMode" value="flame" checked="checked"/> Flame</label>
+				<label><input type="radio" name="displayMode" value="position"/> Position</label>
+				<label><input type="radio" name="displayMode" value="colour"/> Colour</label>
+			</form>
 		</div>
+
+		<script id="shader-show-raw-fs" type="x-shader/x-fragment">
+			#ifdef GL_ES
+				precision highp float;
+			#endif
+
+			uniform sampler2D uTexSamp;
+
+			void main(void) {
+				vec3 texel = texture2D(uTexSamp, gl_FragCoord.xy / <%= RESOLUTION %>).rgb;
+
+				gl_FragColor = vec4(texel, 1.0);
+			}
+		</script>
 
 		<script id="shader-show-fs" type="x-shader/x-fragment">
 			#ifdef GL_ES
@@ -64,8 +85,8 @@
 			const float PI = 3.141592;
 
 			// Rand
-			float rand(vec2 co){
-			    return fract(sin(dot(co.xy, vec2(12.9898 + frames, 78.233))) * (43758.5453));
+			float rand(vec2 co) {
+			    return fract(sin(dot(co, vec2(12.9898 + frames, 78.233))) * 43758.5453);
 			}
 
 			// COSH Function (Hyperbolic Cosine) http://machinesdontcare.wordpress.com/2008/03/10/glsl-cosh-sinh-tanh/
@@ -104,14 +125,22 @@
 				float r = rand(tex);
 
 				if(r < 1.0 / 3.0) {
+					point = vec2(sin(point.x), sin(point.y));
 					//point = vec2(point.x * 0.5 - 0.5, point.y * 0.5 - 0.5);
-					point = vec2(cos(PI * point.x) * cosh(point.y), -sin(PI * point.x) * sinh(point.y));
+					//point = vec2(cos(2.3 * PI * point.x) * cosh(2.4 * point.y), -sin(2.4 * PI * point.x) * sinh(4.4 * point.y));
 				} else if(r < 2.0 / 3.0) {
-					point = a / PI * vec2(sin(PI * l), cos(PI * l));
+					point = 1.0 / (l * l) * point;
+					//point = vec2(point.x * 0.5 + 0.5, point.y * 0.5 - 0.5);
+					//point = a / PI * vec2(3.4*sin(PI * l), 2.3*cos(PI * l));
 				} else {
+					point = vec2(point.x * sin(l*l) - point.y*cos(l*l), point.x*cos(l*l) + point.y*sin(l*l)); //point * r;
 					//point = vec2(point.x * 0.5, point.y * 0.5 + 0.5);
-					point = exp(point.x - 1.0) * vec2(cos(3.14 * point.y), sin(3.14 * point.y));
+					//point = exp(point.x - 1.0) * vec2(cos(3.14 * point.y), sin(3.14 * point.y));
 				}
+
+				point /= 1.3;
+
+				//point = vec2(cos(PI * point.x) * cosh(point.y), -sin(PI * point.x) * sinh(point.y));
 
 				gl_FragColor = vec4(point, 0.0, 1.0);
 			}
@@ -126,8 +155,8 @@
 			uniform float frames;
 
 			// Rand
-			float rand(vec2 co){
-			    return fract(sin(dot(co.xy, vec2(12.9898 + frames, 78.233))) * (43758.5453));
+			float rand(vec2 co) {
+			    return fract(sin(dot(co.xy, vec2(12.9898 + frames, 78.233))) * 43758.5453);
 			}
 
 			void main(void) {
@@ -375,7 +404,7 @@
 					gl.vertexAttribPointer(prog_comp.vertexPositionAttribute, quadVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 				}
 
-				var prog_points, prog_comp, prog_comp_col, prog_show;
+				var prog_points, prog_comp, prog_comp_col, prog_show, prog_show_raw;
 
 				function initShaders() {
 					//
@@ -413,6 +442,11 @@
 					prog_show.uTexSamp = gl.getUniformLocation(prog_show, "uTexSamp");
 					prog_show.frames = gl.getUniformLocation(prog_show, "frames");
 					prog_show.brightness = gl.getUniformLocation(prog_show, "brightness");
+
+					//
+					prog_show_raw = compileShader("shader-direct-vs", "shader-show-raw-fs", {RESOLUTION: canvas.width});
+
+					prog_show_raw.uTexSamp = gl.getUniformLocation(prog_show_raw, "uTexSamp");
 				}
 
 				var texture0, texture1, _texture0, _texture1, texture2;
@@ -625,7 +659,7 @@
 					gl.disable(gl.BLEND);
 				}
 
-				function display() {
+				function displayFlame() {
 					gl.disable(gl.BLEND);
 
 					gl.viewport(0, 0, canvas_size, canvas_size);
@@ -647,6 +681,46 @@
 					gl.drawArrays(gl.TRIANGLE_STRIP, 0, quadVertexPositionBuffer.numItems);
 				}
 
+				function displayPosition() {
+					gl.disable(gl.BLEND);
+
+					gl.viewport(0, 0, canvas_size, canvas_size);
+
+					gl.useProgram(prog_show_raw);
+
+					gl.activeTexture(gl.TEXTURE0);
+					gl.bindTexture(gl.TEXTURE_2D, texture1);
+
+					gl.uniform1i(prog_show_raw.uTexSamp, 0);
+
+					gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+					gl.bindBuffer(gl.ARRAY_BUFFER, quadVertexPositionBuffer);
+					gl.vertexAttribPointer(prog_comp.vertexPositionAttribute, quadVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+					gl.drawArrays(gl.TRIANGLE_STRIP, 0, quadVertexPositionBuffer.numItems);
+				}
+
+				function displayColour() {
+					gl.disable(gl.BLEND);
+
+					gl.viewport(0, 0, canvas_size, canvas_size);
+
+					gl.useProgram(prog_show_raw);
+
+					gl.activeTexture(gl.TEXTURE0);
+					gl.bindTexture(gl.TEXTURE_2D, _texture1);
+
+					gl.uniform1i(prog_show_raw.uTexSamp, 0);
+
+					gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+					gl.bindBuffer(gl.ARRAY_BUFFER, quadVertexPositionBuffer);
+					gl.vertexAttribPointer(prog_comp.vertexPositionAttribute, quadVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+					gl.drawArrays(gl.TRIANGLE_STRIP, 0, quadVertexPositionBuffer.numItems);
+				}
+
 				function drawScene() {
 					//
 					iterateIFS();
@@ -657,7 +731,13 @@
 					}
 
 					//
-					display();
+					var displayMode = getRadioValue(radioButtonElements);
+
+					switch(displayMode) {
+						case "flame": displayFlame(); break;
+						case "position": displayPosition(); break;
+						case "colour": displayColour(); break;
+					}
 
 					//
 					fps++;
@@ -680,14 +760,24 @@
 					document.body.appendChild(imgElement);
 				}
 
+				function getRadioValue(radioButtonElements) {
+					for(var i = 0; i < radioButtonElements.length; i++) {
+						var radioButtonElement = radioButtonElements[i];
+
+						if(radioButtonElement.checked)
+							return radioButtonElement.value;
+					}
+				}
+
 				window.save = save;
 
 				var gl;
 				var canvas;
-				var canvas_size = grid_size = 2048;
-				var points_size = 1024;
+				var canvas_size = grid_size = 512;
+				var points_size = 512;
 
 				var brightnessElement = document.querySelector("#brightness");
+				var radioButtonElements = document.getElementsByName('displayMode');
 
 			  	function main() {
 					canvas = document.getElementById("screen");
