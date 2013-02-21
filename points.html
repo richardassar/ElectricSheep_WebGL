@@ -7,12 +7,6 @@
 				padding: 0;
 			}
 
-			canvas {
-				position: absolute;
-				left: 0px;
-				top: 0px;
-			}
-
 			#overlay {
 				position: absolute;
 				right: 0;
@@ -86,7 +80,8 @@
 
 			// Rand
 			float rand(vec2 co) {
-			    return fract(sin(dot(co, vec2(12.9898 * seed, 78.233))) * 43758.5453);
+			    return fract(sin(dot(co, vec2(12.9898 * seed, 78.233 * seed
+			    	))) * 43758.5453);
 			}
 
 			// COSH Function (Hyperbolic Cosine) http://machinesdontcare.wordpress.com/2008/03/10/glsl-cosh-sinh-tanh/
@@ -124,22 +119,27 @@
 
 				float r = rand(tex);
 
-				if(r < 1.0 / 3.0) {
-					//point = vec2(sin(point.x), sin(point.y));
-					point = vec2(point.x * 0.5 - 0.5, point.y * 0.5 - 0.5);
+				if(r < 1.0 / 4.0) {
+					point = vec2(sin(point.x), sin(point.y));
+					//point = vec2(point.x * 0.5 - 0.5, point.y * 0.5 - 0.5);
 					//point = vec2(cos(2.3 * PI * point.x) * cosh(2.4 * point.y), -sin(2.4 * PI * point.x) * sinh(4.4 * point.y));
-				} else if(r < 2.0 / 3.0) {
+
+					//point = 1.0 / l * vec2((point.x - point.y) * (point.x + point.y), 2.0 * point.x * point.y);
+				} else if(r < 2.0 / 4.0) {
 					//point = 1.0 / (l * l) * point;
 					point = vec2(point.x * 0.5 + 0.5, point.y * 0.5 - 0.5);
 					//point = a / PI * vec2(3.4*sin(PI * l), 2.3*cos(PI * l));
-				} else {
-					//point = vec2(point.x * sin(l*l) - point.y*cos(l*l), point.x*cos(l*l) + point.y*sin(l*l)); //point * r;
-					point = vec2(point.x * 0.5, point.y * 0.5 + 0.5);
+				} else if(r < 3.0 / 4.0) {
+					point = vec2(point.x * sin(l*l) - point.y*cos(l*l), point.x*cos(l*l) + point.y*sin(l*l)); //point * r;
+					//point = vec2(point.x * 0.5 - 0.5, point.y * 0.5 + 0.5);
 					//point = exp(point.x - 1.0) * vec2(cos(3.14 * point.y), sin(3.14 * point.y));
+				} else {
+					point = exp(point.x - 1.0) * vec2(cos(3.14 * point.y), sin(3.14 * point.y));
+					//point = vec2(point.x * 0.5 + 0.5, point.y * 0.5 + 0.5);
 				}
 
 				//point += vec2(0.1,-0.02);
-				//point /= 1.3;
+				point *= 1.3;
 
 				//point = vec2(cos(PI * point.x) * cosh(point.y), -sin(PI * point.x) * sinh(point.y));
 
@@ -157,7 +157,7 @@
 
 			// Rand
 			float rand(vec2 co) {
-			    return fract(sin(dot(co.xy, vec2(12.9898 * seed, 78.233))) * 43758.5453);
+			    return fract(sin(dot(co.xy, vec2(12.9898 * seed, 78.233 * seed))) * 43758.5453);
 			}
 
 			void main(void) {
@@ -167,20 +167,24 @@
 
 				float r = rand(tex);
 
-				if(r < 1.0 / 3.0) {
+				if(r < 1.0 / 4.0) {
 					col = (col + vec3(
-						0.1882352941176471,0.2843137254901961,0.7803921568627451
+						0.1882352941176471,0.2843137254901961,0.9803921568627451
 						//1.0, 0.0, 0.0
 					)) / 2.0;
-				} else if(r < 2.0 / 3.0) {
+				} else if(r < 2.0 / 4.0) {
 					col = (col + vec3(
-						0,1,0.5647058823529412
+						0.2,1,0.5647058823529412
 						//0.0, 1.0, 0.0
+					)) / 2.0;
+				} else if(r < 3.0 / 4.0) {
+					col = (col + vec3(
+						0.2,0.2941176470588235,0.8941176470588235
+						//0.0, 0.0, 1.0
 					)) / 2.0;
 				} else {
 					col = (col + vec3(
-						1,0.2941176470588235,0.0941176470588235
-						//0.0, 0.0, 1.0
+						1.0, 1.0, 0.0
 					)) / 2.0;
 				}
 
@@ -651,8 +655,6 @@
 					gl.vertexAttribPointer(prog_points.vertexPositionAttribute, pointsVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
 
 					gl.enable(gl.BLEND);
-
-					//
 					gl.blendFunc(gl.ONE, gl.ONE);
 
 					gl.bindFramebuffer(gl.FRAMEBUFFER, FBO2);
@@ -763,6 +765,8 @@
 					document.body.appendChild(imgElement);
 				}
 
+				window.save = save;
+
 				function getRadioValue(radioButtonElements) {
 					for(var i = 0; i < radioButtonElements.length; i++) {
 						var radioButtonElement = radioButtonElements[i];
@@ -772,12 +776,31 @@
 					}
 				}
 
-				window.save = save;
+				function test() {
+					gl.bindTexture(gl.TEXTURE_2D, texture0);
+
+					var pixels = [], tSize = points_size;
+
+					for(var i = 0; i < tSize; i++) {
+						for(var j = 0; j < tSize; j++) {
+							pixels.push(
+								-1 + 2 * Math.random(),
+								-1 + 2 * Math.random(),
+								0,
+								0
+							);
+						}
+					}
+
+					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, tSize, tSize, 0, gl.RGBA, gl.FLOAT, new Float32Array(pixels));
+				}
+
+				window.test = test;
 
 				var gl;
 				var canvas;
 				var canvas_size = grid_size = 1024;
-				var points_size = 1024;
+				var points_size = 64;
 
 				var brightnessElement = document.querySelector("#brightness");
 				var radioButtonElements = document.getElementsByName('displayMode');
