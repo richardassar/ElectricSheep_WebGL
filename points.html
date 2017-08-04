@@ -60,7 +60,7 @@
 				vec3 colorTexel = texture2D(uTexSamp, gl_FragCoord.xy / <%= RESOLUTION %>).rgb;
 				float alpha = texture2D(uTexSamp, gl_FragCoord.xy / <%= RESOLUTION %>).a;
 
-				vec3 col = colorTexel * log(alpha) / (alpha * log(frames));
+				vec3 col = colorTexel * log(alpha) / (log(alpha) * frames);
 
 				col = vec3(pow(col.r, 1.0 / brightness), pow(col.g, 1.0 / brightness), pow(col.b, 1.0 / brightness)); // Brightness correction
 
@@ -80,8 +80,7 @@
 
 			// Rand
 			float rand(vec2 co) {
-			    return fract(sin(dot(co, vec2(12.9898 * seed, 78.233 * seed
-			    	))) * 43758.5453);
+			    return fract(sin(dot(co, vec2(12.9898 * seed, 78.233 * seed))) * 43758.5453);
 			}
 
 			// COSH Function (Hyperbolic Cosine) http://machinesdontcare.wordpress.com/2008/03/10/glsl-cosh-sinh-tanh/
@@ -108,6 +107,23 @@
 				return sinH;
 			}
 
+			//float r = length(point);
+			//float a = atan(point.x/point.y);
+			//float b = atan(point.y/point.x);
+
+			//point = vec2(point.x * 0.5 - 0.5, point.y * 0.5 - 0.5);
+			//point = 1.0 / (r * r) * point;
+			//point = exp(point.x - 1.0) * vec2(cos(3.14 * point.y), sin(3.14 * point.y));
+			//point = vec2(cos(3.14 * point.x) * cosh(point.y), -sin(3.14 * point.x) * sinh(point.y));
+			//point = vec2(sin(point.x), sin(point.y));
+			//point = vec2(point.x * sin(r * r) - point.y * cos(r * r), point.x * cos(r * r) + point.y * sin(r * r));
+			//point = 1.0 / r * vec2(cos(a) + sin(r), sin(a) - cos(r));
+			//point = r * vec2(sin(a * r), -cos(a * r));
+			//point = a / PI * vec2(sin(PI * r), cos(PI * r));
+			//point = pow(r, sin(a)) * vec2(cos(a), sin(a));
+			//point = 1.0 / r * vec2((point.x - point.y) * (point.x + point.y), 2.0 * point.x * point.y);
+			//point = vec2(sin(point.x)/cos(point.y), tan(point.y));
+
 			void main(void) {
 				vec2 tex = gl_FragCoord.xy / <%= RESOLUTION %>;
 
@@ -119,29 +135,17 @@
 
 				float r = rand(tex);
 
-				if(r < 1.0 / 4.0) {
-					point = vec2(sin(point.x), sin(point.y));
-					//point = vec2(point.x * 0.5 - 0.5, point.y * 0.5 - 0.5);
-					//point = vec2(cos(2.3 * PI * point.x) * cosh(2.4 * point.y), -sin(2.4 * PI * point.x) * sinh(4.4 * point.y));
+				if(r < 1.0 / 3.0) {
+					point = 1.0 / l * vec2((point.x - point.y) * (point.x + point.y), 2.0 * point.x * point.y);					
+				} else if(r < 2.0 / 3.0) {
+					point = 1.0 / (l * l) * point;
+				} else if(r < 3.0 / 3.0) {
+					point = vec2(point.x * 0.5, point.y * 0.5 + 0.5);				
+				} 
+				
+				l = length(point);
+				point = exp(point.x - 1.0) * vec2(cos(l * point.y), sin(l * point.y));
 
-					//point = 1.0 / l * vec2((point.x - point.y) * (point.x + point.y), 2.0 * point.x * point.y);
-				} else if(r < 2.0 / 4.0) {
-					//point = 1.0 / (l * l) * point;
-					point = vec2(point.x * 0.5 + 0.5, point.y * 0.5 - 0.5);
-					//point = a / PI * vec2(3.4*sin(PI * l), 2.3*cos(PI * l));
-				} else if(r < 3.0 / 4.0) {
-					point = vec2(point.x * sin(l*l) - point.y*cos(l*l), point.x*cos(l*l) + point.y*sin(l*l)); //point * r;
-					//point = vec2(point.x * 0.5 - 0.5, point.y * 0.5 + 0.5);
-					//point = exp(point.x - 1.0) * vec2(cos(3.14 * point.y), sin(3.14 * point.y));
-				} else {
-					point = exp(point.x - 1.0) * vec2(cos(3.14 * point.y), sin(3.14 * point.y));
-					//point = vec2(point.x * 0.5 + 0.5, point.y * 0.5 + 0.5);
-				}
-
-				//point += vec2(0.1,-0.02);
-				point *= 1.3;
-
-				//point = vec2(cos(PI * point.x) * cosh(point.y), -sin(PI * point.x) * sinh(point.y));
 
 				gl_FragColor = vec4(point, 0.0, 1.0);
 			}
@@ -167,26 +171,23 @@
 
 				float r = rand(tex);
 
-				if(r < 1.0 / 4.0) {
-					col = (col + vec3(
-						0.1882352941176471,0.2843137254901961,0.9803921568627451
-						//1.0, 0.0, 0.0
+				if(r < 1.0 / 3.0) {
+					col = (col + vec3(						
+						1.0, 0.0, 0.0
 					)) / 2.0;
-				} else if(r < 2.0 / 4.0) {
-					col = (col + vec3(
-						0.2,1,0.5647058823529412
-						//0.0, 1.0, 0.0
+				} else if(r < 2.0 / 3.0) {
+					col = (col + vec3(						
+						0.0, 1.0, 0.0
 					)) / 2.0;
-				} else if(r < 3.0 / 4.0) {
-					col = (col + vec3(
-						0.2,0.2941176470588235,0.8941176470588235
-						//0.0, 0.0, 1.0
+				} else if(r < 3.0 / 3.0) {
+					col = (col + vec3(						
+						0.0, 0.0, 1.0
 					)) / 2.0;
-				} else {
+				}/* else {
 					col = (col + vec3(
 						1.0, 1.0, 0.0
 					)) / 2.0;
-				}
+				}*/
 
 				gl_FragColor = vec4(col, 1.0);
 			}
@@ -218,33 +219,7 @@
 			uniform sampler2D uTexSamp_Points;
 			uniform sampler2D uTexSamp_Colors;
 
-			varying vec4 fragColor;
-
-			// COSH Function (Hyperbolic Cosine) http://machinesdontcare.wordpress.com/2008/03/10/glsl-cosh-sinh-tanh/
-			float cosh(float val)
-			{
-				float tmp = exp(val);
-				float cosH = (tmp + 1.0 / tmp) / 2.0;
-				return cosH;
-			}
-
-			// TANH Function (Hyperbolic Tangent) http://machinesdontcare.wordpress.com/2008/03/10/glsl-cosh-sinh-tanh/
-			float tanh(float val)
-			{
-				float tmp = exp(val);
-				float tanH = (tmp - 1.0 / tmp) / (tmp + 1.0 / tmp);
-				return tanH;
-			}
-
-			// SINH Function (Hyperbolic Sine) http://machinesdontcare.wordpress.com/2008/03/10/glsl-cosh-sinh-tanh/
-			float sinh(float val)
-			{
-				float tmp = exp(val);
-				float sinH = (tmp - 1.0 / tmp) / 2.0;
-				return sinH;
-			}
-
-			const float PI = 3.141592;
+			varying vec4 fragColor;		
 
 			void main(void) {
 				gl_PointSize = 1.0;
@@ -257,22 +232,6 @@
 				fragColor = color;
 				gl_Position = vec4(point.xy, 0.0, 1.0);
 			}
-
-			//float r = length(point);
-			//float a = atan(point.x/point.y);
-			//float b = atan(point.y/point.x);
-
-			//point = 1.0 / (r * r) * point;
-			//point = exp(point.x - 1.0) * vec2(cos(3.14 * point.y), sin(3.14 * point.y));
-			//point = vec2(cos(3.14 * point.x) * cosh(point.y), -sin(3.14 * point.x) * sinh(point.y));
-			//point = vec2(sin(point.x), sin(point.y));
-			//point = vec2(point.x * sin(r * r) - point.y * cos(r * r), point.x * cos(r * r) + point.y * sin(r * r));
-			//point = 1.0 / r * vec2(cos(a) + sin(r), sin(a) - cos(r));
-			//point = r * vec2(sin(a * r), -cos(a * r));
-			//point = a / PI * vec2(sin(PI * r), cos(PI * r));
-			//point = pow(r, sin(a)) * vec2(cos(a), sin(a));
-			//point = 1.0 / r * vec2((point.x - point.y) * (point.x + point.y), 2.0 * point.x * point.y);
-			//point = vec2(sin(point.x)/cos(point.y), tan(point.y));
 		</script>
 
 		<script>
@@ -748,8 +707,7 @@
 					fps++;
 					frames++;
 
-					//requestAnimFrame(drawScene);
-					setTimeout(drawScene, 0);
+					requestAnimFrame(drawScene);
 				}
 
 				function save() {
@@ -758,7 +716,6 @@
 
 					//
 					var imgElement = document.createElement('img');
-
 					imgElement.src = imgData;
 
 					//
@@ -800,7 +757,7 @@
 				var gl;
 				var canvas;
 				var canvas_size = grid_size = 1024;
-				var points_size = 64;
+				var points_size = 512;
 
 				var brightnessElement = document.querySelector("#brightness");
 				var radioButtonElements = document.getElementsByName('displayMode');
