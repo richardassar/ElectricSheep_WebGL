@@ -1,5 +1,5 @@
 # ElectricSheep_WebGL
-A IFS fractal flame renderer for the browser using WebGL.
+An IFS fractal flame renderer for the browser using WebGL.
 
 Try it [here!](http://richardassar.github.io/ElectricSheep_WebGL/)
 
